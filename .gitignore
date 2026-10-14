@@ -1,0 +1,170 @@
+# Unity project .gitignore
+
+# ============================================================
+# Unity generated / local state
+# ============================================================
+
+.utmp/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# ============================================================
+# Logs / crash output
+# ============================================================
+
+*.log
+sysinfo.txt
+*.stacktrace
+
+# ============================================================
+# IDE / generated solution & project files
+# ============================================================
+
+.vs/
+.idea/
+.gradle/
+.consulo/
+ExportedObj/
+
+*.csproj
+!/Tests/**/*.csproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.unityproj
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity-generated metadata for transient debug files
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# ============================================================
+# OS junk
+# ============================================================
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ============================================================
+# JetBrains Unity plugin
+# ============================================================
+
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# ============================================================
+# Build / package outputs
+# ============================================================
+
+*.apk
+*.aab
+*.app
+*.ipa
+*.dSYM.zip
+*.unitypackage
+*.unitypackage.meta
+
+# ============================================================
+# Local helper/test build outputs
+# ============================================================
+
+/Tests/**/[Bb]in/
+/Tests/**/[Oo]bj/
+
+# ============================================================
+# Addressables / generated streaming content
+# ============================================================
+
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# ============================================================
+# Blender temporary / backup files
+# ============================================================
+
+*.blend1
+*.blend2
+*.blend@
+*.blend~
+
+# Keep production .blend files tracked.
+
+# ============================================================
+# Python / agent tooling caches
+# ============================================================
+
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# ============================================================
+# Local scratch / temporary automation outputs
+# ============================================================
+
+/tmp/
+/TempAgent/
+*.bak
+
+# ============================================================
+# Secrets / tokens
+# ============================================================
+
+.env
+.env.*
+*.secret
+*.apikey
+secrets/
+credentials/
+
+*api*token*
+
+# ============================================================
+# Optional QA iteration output
+# ============================================================
+
+# Temporary visual-review captures. Keep approved reference images elsewhere.
+/QA/Temp/
+/QA/Iterations/
+/Assets/QA/Temp/
+/Assets/QA/Iterations/
+
+# ============================================================
+# Asset Store notes
+# ============================================================
+
+# Do NOT ignore imported Asset Store assets that are referenced
+# by scenes, prefabs, materials or scripts.
+#
+# Example: keep tracked
+# /Assets/_Incoming/SmallTown/
+#
+# Unity's external Asset Store/cache/download location should not
+# be copied into this project or repository.
+
+# Uncomment only if you deliberately want to ignore AssetStoreTools:
+# /[Aa]ssets/AssetStoreTools*
+
+# Blender build staging
+/BlenderStaging/
+
+# Personal Claude Code settings (not shared)
+.claude/settings.local.json
