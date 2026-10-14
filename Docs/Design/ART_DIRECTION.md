@@ -27,7 +27,7 @@ kids in a snow globe town, lit like a crisp morning.
   - Puffer nylon — soft sheen, quilted stitching
   - Wool/duffel — felted, toggles
   - Fleece — matte, soft
-  - Rubber (wellies, boots), denim, corduroy
+  - Rubber (snow boots, rain boots), denim, corduroy
   - **Snow-dusting overlay** — a mask that builds up as a kid gets chilled,
     and a darker "wet patch" when Soaked (driven by a shader parameter).
 - **Team colour:** carried by the **scarf and hat pom-pom** (and the hat
@@ -63,6 +63,8 @@ blue hour as the "streetlights on" end-of-match moment.
 
 ## UI
 
+- Landscape only on iPhone/iPad.
+
 - Hand-drawn feel: rounded panels like mitten-knit, chunky type
   (candidates: *Baloo 2*, *Fredoka*, *Lilita One* — all free/OFL).
 - Kid profile cards look like collectible trading cards / school photo cards.
@@ -71,15 +73,33 @@ blue hour as the "streetlights on" end-of-match moment.
 ## Animation list (per kid, shared rig)
 
 Locomotion: idle (shiver variant), walk, run, crouch-walk, slip/slide, belly
-slide, sledge sit.
+slide, sled sit.
 Snow: scoop, pack (loop), roll boulder, build wall (loop), repair.
 Combat: throw lob, throw line drive, special throw per kid, dodge left/right,
 duck behind cover, peek, hit reactions (front, back, big knockback), Soaked
 (dramatic flop), walk to bench, sip cocoa, return.
 Social: cheer, taunt, sulk, high-five (paired), celebrate win, lose.
 
-All kids share one **base rig** with 2–3 body sizes (small / medium / large)
+All kids share one **base rig** with 3 body sizes (small / medium / large)
 so animations retarget cleanly.
+
+## Modular kit (custom avatars and the cosmetic shop)
+
+Because players build their own kid and buy cosmetics, every kid — named or
+custom — is assembled from the same modular kit:
+
+- **Per body size:** base body, hands (mitten-ready), boots attach point.
+- **Heads:** a few head shapes sharing one face UV layout so the expression
+  flipbooks work on all of them; skin tone is a material parameter.
+- **Hair:** short pieces designed to sit under any hat (with a "hat on" and
+  "hat off" variant per hair style).
+- **Outfit slots:** hat, coat, scarf, mittens, trousers, boots, back item
+  (backpack / thermos / stick). Each piece is authored for all three body
+  sizes, or uses a blendshape to fit them.
+- **Team colour and wetness** stay as material masks on every piece, so any
+  cosmetic still reads Home/Away and still gets snowy.
+- Named kids are simply "preset outfits" built from this kit, plus their
+  signature props.
 
 ## Pipeline (same toolchain as RAF)
 

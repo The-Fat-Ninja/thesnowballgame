@@ -31,29 +31,28 @@ Status: **first roster draft**. Names, ages and abilities are proposals.
 
 ---
 
-## The Maple Close Crew (the player's starting four)
+## The Maple Court Crew (the player's starting four)
 
 ### Maisie "Fastball" Okafor — Thrower, age 10
 
-Plays cricket every summer and is the fastest bowler in her year. Bossy,
-brilliant, keeps score out loud. Wears her dad's oversized goalkeeping gloves
-over her mittens.
+Little League's best pitcher, fifth grade. Bossy, brilliant, keeps score out
+loud. Wears her dad's oversized batting gloves over her mittens.
 
 | Arm | Aim | Hustle | Grit | Craft |
 |---|---|---|---|---|
 | 5 | 4 | 3 | 2 | 2 |
 
-- **Passive — Run-up:** throws after moving are faster.
-- **Bouncer:** a flat, very fast throw that ignores wind.
-- **Spinner:** a throw that curves around the edge of cover.
-- **Special — Hat-trick:** three rapid throws at three targets.
-- **Bark:** "Howzat!"
+- **Passive — Wind-up:** throws after moving are faster.
+- **Fastball:** a flat, very fast throw that ignores wind.
+- **Curveball:** a throw that curves around the edge of cover.
+- **Special — Strikeout:** three rapid throws at three targets.
+- **Bark:** "Strike three!"
 
 ### Bernard "Bunker" Lindqvist — Builder, age 11
 
 Has a clipboard. Has a plan. Has, in fact, *several* plans, and all of them
 involve walls. Wears a bright orange bobble hat and a high-vis vest borrowed
-from his mum's work.
+from his mom's work.
 
 | Arm | Aim | Hustle | Grit | Craft |
 |---|---|---|---|---|
@@ -85,7 +84,7 @@ a string.
 ### Rosa Delgado — Support, age 9
 
 Brings a flask of hot chocolate to everything. Kind, organised, quietly
-competitive. A red duffel coat and a huge knitted scarf her abuela made.
+competitive. A red toggle parka and a huge knitted scarf her abuela made.
 
 | Arm | Aim | Hustle | Grit | Craft |
 |---|---|---|---|---|
@@ -104,8 +103,8 @@ competitive. A red duffel coat and a huge knitted scarf her abuela made.
 
 ### Tobias "Tank" Brennan — Heavy, age 12
 
-The biggest kid on Hill Road, gentle until the snowballs start. Rugby shirt
-over a hoodie, no hat, no matter the weather.
+The biggest kid on Hill Road, gentle until the snowballs start. Striped football
+jersey over a hoodie, no hat, no matter the weather.
 
 | Arm | Aim | Hustle | Grit | Craft |
 |---|---|---|---|---|
@@ -200,7 +199,7 @@ over her shoulder until she finds ice.
 ### Hamish McBride — Heavy (Goalie), age 10
 
 Ice-hockey goalie, has all the pads. Insists he's Canadian. (He's from
-Dundee.)
+Ohio.)
 
 | Arm | Aim | Hustle | Grit | Craft |
 |---|---|---|---|---|
@@ -236,13 +235,13 @@ sharing one Warmth meter.
 
 | Crew | Street | Flavour | Captain |
 |---|---|---|---|
-| **Maple Close Crew** | Maple Close | You. | Maisie |
-| **Hill Road Hooligans** | Hill Road (the sledging hill) | Big, loud, love boulders | Tobias |
-| **The Allotment Gang** | the allotments | Sheds, cabbages, a scarecrow; trickster crew | Felix |
+| **Maple Court Crew** | Maple Court | You. | Maisie |
+| **Hill Road Hooligans** | Hill Road (the sledding hill) | Big, loud, love boulders | Tobias |
+| **The Garden Gang** | the community garden | Sheds, greenhouse, a scarecrow; trickster crew | Felix |
 | **Pond Lane Penguins** | the park and the frozen pond | Skaters and hockey kids | Zara / Hamish |
 | **The Woodlanders** | the woods and the tree fort | Scouts, climbers, a dog | Jun / Wren |
-| **The Icicles** | the posh new estate | Final crew. Matching ski gear, drone, *iceballs*. They cheat. | "Sterling" |
-| **The Big Kids** | the secondary school | Co-op survival waves | — |
+| **The Icicles** | the fancy new gated subdivision | Final crew. Matching ski gear, drone, *iceballs*. They cheat. | "Sterling" |
+| **The Big Kids** | the high school | Co-op survival waves | — |
 
 The Icicles never join you: their reveal is that the captain, Sterling, has
 never actually had a proper snow day with friends — the ending is them joining
@@ -255,9 +254,9 @@ Every kid has:
 - Portrait (3 expressions: happy, determined, soaked)
 - Name, nickname, age, street, role icon
 - Five stat pips
-- Likes / dislikes (e.g. Pip: *likes* — sledging, bananas; *dislikes* —
+- Likes / dislikes (e.g. Pip: *likes* — sledding, bananas; *dislikes* —
   bedtime, being called "little")
 - Signature bark (voice line)
 - Bio (2–3 lines)
 - Unlockable trivia (earned through play)
-- Cosmetic slots: hat, scarf (team colour), coat, mittens, sledge
+- Cosmetic slots: hat, scarf (team colour), coat, mittens, sled

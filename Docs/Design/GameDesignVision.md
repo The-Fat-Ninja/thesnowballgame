@@ -1,7 +1,7 @@
 # The Snowball Game — Design Vision
 
-Status: **first vision draft** (2026-10-14). Nothing here is locked; the open
-questions are collected in `../Development/OPEN_QUESTIONS.md`.
+Status: **vision draft v0.2** (2026-10-14). Updated with the owner's rulings
+in `../Development/OWNER_DECISIONS.md`.
 
 ## One-line pitch
 
@@ -27,11 +27,12 @@ and out-think the gang from the next street over.
 
 ## Setting
 
-**Hollybrook**, a small, slightly timeless town (somewhere between a British
-village and a North American suburb, so it travels well), during **Snow Week**:
-five days of snow closures. Terraced streets and cul-de-sacs, the primary
-school field, the park with the frozen pond, the sledging hill, the allotments,
-the woods behind the estate with a half-built tree fort.
+**Hollybrook**, a North American suburb with a slightly timeless feel (porches,
+mailboxes, station wagons next to minivans, no phones in anyone's hands),
+during **Snow Week**: five days of snow closures. Cul-de-sacs and tree-lined
+streets, the elementary school field, the park with the frozen pond, the
+sledding hill, the community garden, the woods behind the subdivision with a
+half-built tree fort. In-game text uses US English.
 
 Every street has its own crew of kids, and every crew has a name, a flag (a
 scarf on a broom handle) and a grudge.
@@ -56,13 +57,16 @@ glimpsed as a curtain twitching, or present as rules of the world (the
 cover → throw / use an ability → rebuild or move cover → soak the other side
 out, or win the objective.
 
-**Between matches:** earn **Snow Day stars** → unlock kids, cosmetics (hats,
-mittens, scarves, sledges), and ability variants → pick your next crew of four
+**Between matches:** earn **Snowflakes** → unlock kids, cosmetics (hats,
+mittens, scarves, sleds), and ability variants → pick your next crew of four
 → choose the next street on the town map.
 
 **Over the campaign:** five Snow Days. Each day opens a new district of
 Hollybrook. Beat a street's crew and its captain *joins your roster* — the
 campaign is how you recruit your team.
+
+**Your Kid:** the player makes their own customisable kid, who is always the
+crew captain (see *Your Kid* below). The named kids are the rest of the crew.
 
 ## Key mechanics
 
@@ -114,9 +118,9 @@ kid's thermos, and never in the open during a blizzard.
 | Snow fort | Multi-wall, 3 build stages, the objective in Siege mode |
 | Snowman | Full cover, can be "borrowed" (the hat!) for disguise |
 | Tree | Full cover, can be shaken to dump snow on anyone underneath |
-| Parked car / shed / wheelie bin | Indestructible hard cover |
+| Parked car / shed / trash can / mailbox | Indestructible hard cover |
 | Hedge | Blocks sight, not throws (lobs go over) |
-| Sledge | Pick-up item; a fast dash on slopes, can be used as a shield |
+| Sled | Pick-up item; a fast dash on slopes, can be used as a shield |
 
 ### Terrain
 
@@ -124,7 +128,7 @@ kid's thermos, and never in the open during a blizzard.
 - **Packed path:** fast, no ammo.
 - **Ice (pond, puddles):** you slide; momentum carries you. Some kids are great
   on it.
-- **Slopes:** height = range bonus; sledges go downhill fast; boulders roll.
+- **Slopes:** height = range bonus; sleds go downhill fast; boulders roll.
 - **Footprints:** kids leave tracks in fresh snow. Tracks reveal recent
   movement — a light stealth layer for scouts.
 
@@ -142,10 +146,10 @@ kid's thermos, and never in the open during a blizzard.
 |---|---|
 | **Last Kid Standing** | Elimination. Soak the whole other crew. |
 | **Capture the Scarf** | Classic CTF with each crew's scarf-on-a-broom flag. |
-| **King of the Hill** | Hold the top of the sledging hill. |
+| **King of the Hill** | Hold the top of the sledding hill. |
 | **Fort Siege** | One crew builds and defends a fort, the other attacks; swap sides. |
 | **Snowman Showdown** | Build the biggest snowman while stopping the other crew building theirs. |
-| **Big Kids** (co-op survival) | Waves of teenagers from the secondary school. |
+| **Big Kids** (co-op survival) | Waves of teenagers from the high school. |
 
 ## Play style
 
@@ -154,13 +158,62 @@ Real-time vs turn-based is still open. The options and a recommendation are in
 (as on RAF) and prototype "planned simultaneous turns" first**, with a
 real-time view as the second prototype on the same core.
 
+## Your Kid (customisable avatar)
+
+- Built in a kid creator: body size (small / medium / large, matching the
+  three rig sizes), skin tone, face shape, eyes, hair style and colour,
+  freckles/glasses, then outfit pieces (hat, coat, scarf, mittens, trousers,
+  boots) and a sled.
+- **Role is chosen, not bought:** Your Kid picks one of the six roles and an
+  ability loadout from that role's pool (unlocked through play). The named kids
+  keep their fixed signature kits — they're the characters; Your Kid is you.
+- Your Kid's look is your identity online (preset quick-chat and emotes only —
+  no free text, in line with the age rating).
+- Every cosmetic item fits every kid, named or custom, on the shared rig.
+
+## Business model — free-to-play
+
+Principles: **fair, generous, kind to kids and parents.**
+
+- **Never pay-to-win.** Abilities, kids and loadouts are earned by playing.
+  Money buys looks only.
+- **Earned currency — Snowflakes:** from matches, daily snow-day challenges and
+  the campaign. Buys cosmetics and unlocks kids faster.
+- **Premium currency — Cocoa Cups:** cosmetics only.
+- **Snow Pass (seasonal):** a free track and a paid track of cosmetics per
+  season (Winter Break, Ice Festival, Spring Thaw...). No time-limited power.
+- **Named kids:** all unlock free through the campaign; a cosmetic "first
+  edition" outfit can be bought.
+- **No loot boxes.** Every item is shown before you buy it.
+- **Children's audience rules apply:** COPPA / GDPR-K, parental gate on
+  purchases, no third-party ad SDKs; decide early whether to list in the App
+  Store Kids category (stricter: no third-party analytics). See
+  `../Development/OWNER_DECISIONS.md`.
+- The campaign is fully playable for free; it's the shop window.
+
+## Squad size
+
+**4 v 4 is the design target, provisional.** Squad size is a number in the
+rules core (2–4); the first prototype playtests 3 v 3 against 4 v 4 on a real
+iPhone. In WEGO you plan each kid (with sensible standing orders, so you only
+touch the ones you want to change); in real-time you control one kid and give
+quick orders to the rest.
+
 ## Platforms
 
-- **iOS** (iPhone + iPad): touch-first, portrait-or-landscape decision open,
-  short sessions, Game Center.
+- **iOS** (iPhone + iPad): touch-first, **landscape only**, short sessions,
+  Game Center, async PvP.
 - **Steam** (Windows; macOS optional): mouse/keyboard and **full gamepad**,
-  targeting **Steam Deck Verified** — the Deck is a natural fit for this game.
-- One codebase, Unity 6 / URP, two quality tiers.
+  targeting **Steam Deck Verified**; **local couch play** (split control, one
+  shared screen) as well as online PvP.
+- One codebase, Unity **6000.6.3f1** / URP 17.6 (same as RAF), two quality
+  tiers.
+
+## Release order
+
+1. Single-player campaign (WEGO) — vertical slice first.
+2. Online PvP (iOS async + live), Steam couch play.
+3. Real-time mode on the same rules core, if playtests support it.
 
 ## Audience and tone
 
@@ -175,13 +228,13 @@ snow), and from the unseen grown-ups.
 Every kid has a collectible **profile card**: portrait, name, age, street,
 role, five stats (Arm, Aim, Hustle, Grit, Craft), likes/dislikes, a signature
 bark and a short bio. See `Characters.md`. Profiles also unlock as you play
-(e.g. "Has been soaked 50 times", "Favourite sledge").
+(e.g. "Has been soaked 50 times", "Favourite sled").
 
 ## What makes it different
 
 - The terrain is destructible and *rebuildable*; cover is a resource you spend
   and make.
-- Abilities come from kids' real-feeling hobbies (a cricket bowler, a hockey
+- Abilities come from kids' real-feeling hobbies (a baseball pitcher, a hockey
   goalie, an inventor) rather than superpowers — grounded, then exaggerated.
 - The campaign recruits your roster from the crews you beat.
 - Warm, nostalgic tone in a genre usually done as military or sci-fi.

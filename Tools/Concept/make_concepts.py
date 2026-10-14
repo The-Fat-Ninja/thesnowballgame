@@ -267,7 +267,7 @@ def make_lineup():
          f'<path d="M0,640 Q600,610 1200,640 Q1600,660 {W},630 L{W},{H} L0,{H} Z" fill="#E9EEF8"/>',
          flakes(W, 540, 140, 3), sparkle(W, 570, 700, 40, 4),
          f'<text x="60" y="78" {FONT} font-size="44" font-weight="800" fill="{INK}">The Snowball Game — Kids of Hollybrook</text>',
-         f'<text x="60" y="116" {FONT} font-size="22" fill="{INK}" opacity="0.75">Character line-up v0.1 · shape &amp; colour intent · ~3.5 heads tall · team colour lives in the scarf and hat (Maple Close Crew = Ember Orange)</text>']
+         f'<text x="60" y="116" {FONT} font-size="22" fill="{INK}" opacity="0.75">Character line-up v0.1 · shape &amp; colour intent · ~3.5 heads tall · team colour lives in the scarf and hat (Maple Court Crew = Ember Orange)</text>']
     slot = (W - 120) / 8
     for i, c in enumerate(roster()):
         cx = 60 + slot * i + slot / 2
@@ -369,7 +369,7 @@ def make_map():
     S = 30  # px per metre; 40 x 30 m playable
     ox, oy = 100, 120
     b = [f'<rect width="{W}" height="{H}" fill="#EEF2F9"/>',
-         f'<text x="{ox}" y="62" {FONT} font-size="40" font-weight="800" fill="{INK}">Map concept — Maple Close (cul-de-sac)</text>',
+         f'<text x="{ox}" y="62" {FONT} font-size="40" font-weight="800" fill="{INK}">Map concept — Maple Court (cul-de-sac)</text>',
          f'<text x="{ox}" y="96" {FONT} font-size="20" fill="{INK}" opacity="0.75">Top-down layout v0.1 · 40 × 30 m · 1 m grid · mirrored for competitive play · tutorial / home map</text>']
     b.append(f'<rect x="{ox}" y="{oy}" width="{40 * S}" height="{30 * S}" fill="{SNOW_LIGHT}" {ol()}/>')
     for i in range(41):
@@ -385,7 +385,7 @@ def make_map():
     b.append(f'<rect x="{m(0, 12.5)[0]}" y="{m(0, 12.5)[1]}" width="{40 * S}" height="{5 * S}" fill="#C9CFDA"/>')
     b.append(f'<circle cx="{cx}" cy="{cy}" r="{6.5 * S}" fill="#C9CFDA"/>')
     b.append(f'<circle cx="{cx}" cy="{cy}" r="{2.2 * S}" fill="{SNOW_LIGHT}" {ol(2.5)}/>')
-    # gritting lorry strip
+    # snowplow strip
     b.append(f'<rect x="{m(0, 14.2)[0]}" y="{m(0, 14.2)[1]}" width="{40 * S}" height="{1.6 * S}" fill="#D9B98A" opacity="0.55"/>')
     # houses at both ends (spawns)
     for x0, col, team in ((0, EMBER, "HOME"), (36, PLUM, "AWAY")):
@@ -421,7 +421,7 @@ def make_map():
         b.append(f'<rect x="{X}" y="{Y}" width="{2.5 * S}" height="{1.2 * S}" rx="12" fill="{PINE}" {ol(2)}/>')
         X, Y = m(min(f(4.6), f(7.1)), 28.2)
         b.append(f'<rect x="{X}" y="{Y}" width="{2.5 * S}" height="{1.2 * S}" rx="12" fill="{PINE}" {ol(2)}/>')
-        # wheelie bins
+        # trash cans
         for (x, y) in ((10.5, 3), (10.5, 26.5)):
             X, Y = m(f(x), y)
             b.append(f'<rect x="{X - 12}" y="{Y - 12}" width="24" height="24" rx="4" fill="#3C8D4A" {ol(2)}/>')
@@ -438,8 +438,8 @@ def make_map():
     b.append(f'<path d="M{hx - 2.6 * S},{hy + 2 * S} Q{hx},{hy - 3 * S} {hx + 2.6 * S},{hy + 2 * S} Z" fill="#DDE6F4" {ol(2.5)}/>')
     b.append(f'<path d="M{hx - 1.4 * S},{hy + 2 * S} Q{hx},{hy - 0.6 * S} {hx + 1.4 * S},{hy + 2 * S}" fill="none" stroke="{SNOW_SHADOW}" stroke-width="2"/>')
     b.append(f'<text x="{hx}" y="{hy + 3 * S}" text-anchor="middle" {FONT} font-size="15" fill="{INK}">snow mound — high point (range bonus)</text>')
-    # sledge and bucket pickups
-    for (x, y, lab) in ((20, 10.6, "bucket"), (20, 19.6, "sledge")):
+    # sled and bucket pickups
+    for (x, y, lab) in ((20, 10.6, "bucket"), (20, 19.6, "sled")):
         X, Y = m(x, y)
         b.append(f'<rect x="{X - 14}" y="{Y - 8}" width="28" height="16" rx="5" fill="#F2C14E" {ol(2)}/><text x="{X}" y="{Y + 26}" text-anchor="middle" {FONT} font-size="13" fill="{INK}">{lab}</text>')
     # lanes
@@ -450,18 +450,18 @@ def make_map():
         if lab:
             b.append(f'<text x="{m(lx2, ly2)[0]}" y="{m(lx2, ly2)[1]}" text-anchor="middle" {FONT} font-size="14" fill="{INK}" opacity="0.7">{lab}</text>')
     gx, gy = m(27.5, 13.4)
-    b.append(f'<path d="M{gx},{gy} l50,0 l-10,-8 m10,8 l-10,8" stroke="#9C6A2E" stroke-width="3" fill="none"/><text x="{gx + 58}" y="{gy + 5}" {FONT} font-size="14" font-weight="700" fill="#9C6A2E">gritting lorry strip</text>')
+    b.append(f'<path d="M{gx},{gy} l50,0 l-10,-8 m10,8 l-10,8" stroke="#9C6A2E" stroke-width="3" fill="none"/><text x="{gx + 58}" y="{gy + 5}" {FONT} font-size="14" font-weight="700" fill="#9C6A2E">snowplow route</text>')
     # legend
     lx0, ly0 = ox + 40 * S + 30, oy
     leg = [("white", DEEP_SHADOW, "Snowbank — destructible, re-packable"),
            ("#5C6B8A", INK, "Parked car — hard cover (alarm!)"),
-           (BRICK, INK, "Garden wall — low hard cover"),
+           (BRICK, INK, "Front-yard wall — low cover"),
            (PINE, INK, "Hedge / tree — blocks sight"),
-           ("#3C8D4A", INK, "Wheelie bin — pushable"),
+           ("#3C8D4A", INK, "Trash can — pushable"),
            ("#C9CFDA", "#C9CFDA", "Packed road — fast, no ammo"),
            (SNOW_LIGHT, INK, "Fresh snow — slow, ammo"),
-           ("#F2C14E", INK, "Pickup (bucket, sledge)"),
-           (GLOW, INK, "Lamp post — lights on = last 30 s")]
+           ("#F2C14E", INK, "Pickup (bucket, sled)"),
+           (GLOW, INK, "Streetlight — on = last 30 s")]
     b.append(f'<text x="{lx0}" y="{ly0 + 20}" {FONT} font-size="22" font-weight="800" fill="{INK}">Legend</text>')
     for i, (fill, stroke, lab) in enumerate(leg):
         yy = ly0 + 50 + i * 40
@@ -470,14 +470,14 @@ def make_map():
              "• Three lanes + one high point.",
              "• Ammo at the edges, packed road",
              "  in the middle: leave cover to reload.",
-             "• Toy: the gritting lorry sweeps the",
+             "• Toy: the snowplow sweeps the",
              "  centre strip on a timer.",
              "• Cars' alarms reveal kids nearby.",
              "• Grid underneath keeps the layout",
              "  turn-based compatible."]
     for i, t in enumerate(notes):
         b.append(f'<text x="{lx0}" y="{ly0 + 460 + i * 26}" {FONT} font-size="{20 if i == 0 else 15}" font-weight="{800 if i == 0 else 400}" fill="{INK}">{t}</text>')
-    (OUT / "Map_MapleClose_v01.svg").write_text(svg(W, H, "".join(b), "Map concept Maple Close v0.1"), encoding="utf-8")
+    (OUT / "Map_MapleCourt_v01.svg").write_text(svg(W, H, "".join(b), "Map concept Maple Court v0.1"), encoding="utf-8")
 
 
 # ------------------------------------------------------------ profile card
@@ -494,23 +494,23 @@ def make_card():
          f'<rect x="88" y="150" width="{W - 176}" height="400" rx="20" fill="none" {ol(3)}/>',
          f'<text x="96" y="122" {FONT} font-size="44" font-weight="900" fill="{INK}">Maisie “Fastball”</text>',
          role_icon("Thrower", 640, 108, EMBER),
-         f'<text x="96" y="596" {FONT} font-size="22" font-weight="700" fill="{COCOA}">Okafor · age 10 · Maple Close · Thrower</text>']
+         f'<text x="96" y="596" {FONT} font-size="22" font-weight="700" fill="{COCOA}">Okafor · age 10 · Maple Court · Thrower</text>']
     for i, (n, v) in enumerate(stats):
         yy = 636 + i * 36
         b.append(f'<text x="96" y="{yy + 18}" {FONT} font-size="20" font-weight="700" fill="{INK}">{n}</text>')
         for k in range(5):
             b.append(f'<circle cx="{220 + k * 34}" cy="{yy + 11}" r="12" fill="{EMBER if k < v else "#E3DCCF"}" {ol(2)}/>')
-    ab = [("Run-up", "throws after moving are faster"), ("Bouncer", "flat, very fast, ignores wind"),
-          ("Spinner", "curves round the edge of cover"), ("★ Hat-trick", "three throws, three targets")]
+    ab = [("Wind-up", "throws after moving are faster"), ("Fastball", "flat, very fast, ignores wind"),
+          ("Curveball", "curves round the edge of cover"), ("★ Strikeout", "three throws, three targets")]
     for i, (n, d) in enumerate(ab):
         yy = 650 + i * 46
         b.append(f'<text x="410" y="{yy}" {FONT} font-size="19" font-weight="800" fill="{INK}">{n}</text><text x="410" y="{yy + 21}" {FONT} font-size="14" fill="{INK}" opacity="0.8">{d}</text>')
     b.append(f'<line x1="96" y1="840" x2="{W - 96}" y2="840" stroke="{INK}" stroke-width="2" opacity="0.25"/>')
-    b.append(f'<text x="96" y="874" {FONT} font-size="17" fill="{INK}"><tspan font-weight="800">Likes:</tspan> cricket, keeping score, being right</text>')
+    b.append(f'<text x="96" y="874" {FONT} font-size="17" fill="{INK}"><tspan font-weight="800">Likes:</tspan> baseball, keeping score, being right</text>')
     b.append(f'<text x="96" y="902" {FONT} font-size="17" fill="{INK}"><tspan font-weight="800">Dislikes:</tspan> wet socks, “that didn’t count”</text>')
-    b.append(f'<text x="96" y="936" {FONT} font-size="17" fill="{INK}" opacity="0.85">Fastest bowler in Year 6. Wears her dad’s goalkeeping gloves</text>')
+    b.append(f'<text x="96" y="936" {FONT} font-size="17" fill="{INK}" opacity="0.85">Little League’s best pitcher. Wears her dad’s batting gloves</text>')
     b.append(f'<text x="96" y="958" {FONT} font-size="17" fill="{INK}" opacity="0.85">over her mittens. Keeps score out loud. Always.</text>')
-    b.append(f'<rect x="{W - 250}" y="866" width="150" height="54" rx="27" fill="{INK}"/><text x="{W - 175}" y="901" text-anchor="middle" {FONT} font-size="24" font-weight="900" fill="white">“Howzat!”</text>')
+    b.append(f'<rect x="{W - 290}" y="866" width="190" height="54" rx="27" fill="{INK}"/><text x="{W - 195}" y="901" text-anchor="middle" {FONT} font-size="24" font-weight="900" fill="white">“Strike three!”</text>')
     (OUT / "ProfileCard_Maisie_v01.svg").write_text(svg(W, H, "".join(b), "Kid profile card v0.1"), encoding="utf-8")
 
 

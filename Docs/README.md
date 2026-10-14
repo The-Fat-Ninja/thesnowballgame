@@ -12,7 +12,7 @@
 
 - `Concept/KeyArt_SnowDay_v01.svg` - key art / mood.
 - `Concept/CharacterLineup_v01.svg` - the first eight kids.
-- `Concept/Map_MapleClose_v01.svg` - top-down layout of the first map.
+- `Concept/Map_MapleCourt_v01.svg` - top-down layout of the first map.
 - `Concept/ProfileCard_Maisie_v01.svg` - kid profile card mock-up.
 - `Concept/ColourScript_v01.svg` - palette and team colours.
 
@@ -21,4 +21,5 @@ script and re-run it rather than editing the SVGs by hand.
 
 ## Working records
 
-- `Development/OPEN_QUESTIONS.md` - questions waiting on the owner.
+- `Development/OWNER_DECISIONS.md` - the owner's rulings.
+- `Development/OPEN_QUESTIONS.md` - questions and answers.
