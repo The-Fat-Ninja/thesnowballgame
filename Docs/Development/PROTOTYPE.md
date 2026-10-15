@@ -19,11 +19,14 @@ Status: **first playable greybox** (2026-10-14), branch `feature/wego-prototype`
    stops it. *Lob* (`O`, or shift + right-click) arcs over cover onto a spot,
    but a kid who moves can dodge it. A red throw line means cover is in the way.
    *Throw first* (`F`) throws before walking.
-4. **Build wall** (`B`): tap within 1.5 m of where the kid ends up (fresh snow
+4. **Ball** (`T`) picks which carried snowball to throw; **Make** (`P`)
+   changes what the kid packs from now on. Both buttons take the snowball's
+   colour. A kid holding a boulder shows **Roll** instead of Line drive / Lob.
+5. **Build wall** (`B`): tap within 1.5 m of where the kid ends up (fresh snow
    only). Bernard is fastest.
-5. Kids without orders hold still and **pack snowballs** if they're on fresh
+6. Kids without orders hold still and **pack snowballs** if they're on fresh
    snow. The street and turning circle are packed: no ammo there.
-6. Press **GO!** (`Space`). Both crews' plans play out together for 3 seconds.
+7. Press **GO!** (`Space`). Both crews' plans play out together for 3 seconds.
 
 Camera: `WASD`/arrows to pan, mouse wheel to zoom.
 
@@ -40,6 +43,23 @@ Camera: `WASD`/arrows to pan, mouse wheel to zoom.
 - Stats matter: Arm → range, Aim → spread, Hustle → speed, Grit → warmth,
   Craft → packing/building speed. Pip is small (harder to hit); Ada carries
   3 snowballs.
+- **Five snowball types** — Packed, Quick, Slush, Powder puff and the rolled
+  Boulder — each with its own job; the table is in
+  `Docs/Design/GameDesignVision.md` ("Snow as ammunition"). Packing progress
+  carries over between turns (a boulder can take more than one).
+
+### Telling the snowballs apart
+
+| | In flight | In the pouch (pips) | On impact |
+|---|---|---|---|
+| Packed | white ball | white | white puff |
+| Quick | small icy-blue streak | small blue | small puff |
+| Slush | heavy grey-blue drip | grey-blue | grey splat on the snow; slush puddle at slowed kids' feet |
+| Powder | lilac puff | lilac | billowing cloud that thins as it blows away |
+| Boulder | banded ball that grows and rolls | one big pip | big puff; leaves a snowbank |
+
+Plan lines take the snowball's colour too; the landing ring shows a slush
+splash or powder cloud at full size.
 
 Not in yet: kid abilities and Specials, Your Kid, weather, sleds, the snowplow,
 sound, real art, online play, touch gestures for the camera.
@@ -70,8 +90,13 @@ spot, throw from where it stands and lead running targets.
   every other kid re-plans about once a second.
 - `Recordings/WegoDemo.mp4` — eight turns: a planning beat with the home
   crew's plans laid down kid by kid, then the 3-second GO!.
+- `Recordings/SnowballTypes.mp4` — a one-minute captioned tour of the five
+  snowball types, one staged scene each (also **Snowball Game ▸ Record
+  Snowball Showcase**). Scenes run on the real rules core with kids' Aim raised
+  to 5; each uses the first seed that shows its effect and logs it (all five
+  currently show it on seed 1).
 
-Stills every ten seconds go to `Recordings/Stills/`. `Recordings/` is not
+Stills go to `Recordings/Stills/` (every 10 s; every second for the showcase). `Recordings/` is not
 committed. The real-time tape is concept footage: there is no playable
 real-time scene with direct controls yet.
 

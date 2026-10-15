@@ -20,8 +20,13 @@ namespace SnowballGame.Core
 
         readonly Rng rng;
         readonly List<Projectile> projectiles = new List<Projectile>();
+        readonly List<Cloud> clouds = new List<Cloud>();
         int nextProjectileId = 1;
         int nextCoverId;
+        int nextCloudId = 1;
+
+        /// <summary>Powder clouds hanging in the air right now.</summary>
+        public IReadOnlyList<Cloud> Clouds => clouds;
 
         sealed class Projectile
         {
@@ -29,6 +34,7 @@ namespace SnowballGame.Core
             public int OwnerId;
             public int Team;
             public ThrowStyle Style;
+            public SnowballType Type;
             public Vec2 Pos;
             public Vec2 Start;
             public Vec2 Dir;
@@ -37,7 +43,11 @@ namespace SnowballGame.Core
             public int FlightTicks;
             public int Age;
             public int Apex;
+            public int Speed;
+            public int Radius;
             public bool Done;
+
+            public SnowballSpec Spec => Rules.Spec(Type);
         }
 
         public Match(MapDef map, IList<KidDef> home, IList<KidDef> away, int seed)
@@ -57,7 +67,7 @@ namespace SnowballGame.Core
             {
                 var def = crew[i];
                 int max = Rules.MaxWarmth(def.Grit);
-                Kids.Add(new Kid
+                var kid = new Kid
                 {
                     Id = Kids.Count,
                     Team = team,
@@ -66,8 +76,13 @@ namespace SnowballGame.Core
                     Facing = new Vec2(team == Home ? 100 : -100, 0),
                     Warmth = max,
                     MaxWarmth = max,
-                    Ammo = def.MaxAmmo,
-                });
+                    MakeType = def.Favourite,
+                };
+                // Kids turn up with one of their favourite and the rest packed
+                // (boulders have to be rolled on the day).
+                for (int n = 0; n < def.MaxAmmo; n++)
+                    kid.Pouch.Add(n == 0 && def.Favourite != SnowballType.Boulder ? def.Favourite : SnowballType.Packed);
+                Kids.Add(kid);
             }
         }
 
@@ -106,7 +121,10 @@ namespace SnowballGame.Core
             return true;
         }
 
-        /// <summary>True when a line drive from a to b would not hit cover or a house.</summary>
+        /// <summary>
+        /// True when a line drive from a to b would not hit cover or a house, and
+        /// there's no powder cloud in the way to hide the target.
+        /// </summary>
         public bool IsLineOfFireClear(Vec2 a, Vec2 b)
         {
             int len = Vec2.Dist(a, b);
@@ -116,8 +134,27 @@ namespace SnowballGame.Core
                 Vec2 p = Vec2.Lerp(a, b, i * 1000 / steps);
                 if (Map.TerrainAt(p) == Ground.Blocked) return false;
                 if (CoverAt(p, Rules.ProjectileRadius) != null) return false;
+                if (CloudAt(p) != null) return false;
             }
             return true;
+        }
+
+        /// <summary>True when any powder cloud sits on the line a→b.</summary>
+        public bool IsSightBlocked(Vec2 a, Vec2 b)
+        {
+            if (clouds.Count == 0) return false;
+            int len = Vec2.Dist(a, b);
+            int steps = System.Math.Max(1, len / 40);
+            for (int i = 0; i <= steps; i++)
+                if (CloudAt(Vec2.Lerp(a, b, i * 1000 / steps)) != null) return true;
+            return false;
+        }
+
+        Cloud CloudAt(Vec2 p)
+        {
+            foreach (var c in clouds)
+                if (Vec2.DistSq(p, c.Pos) <= (long)c.Radius * c.Radius) return c;
+            return null;
         }
 
         Cover CoverAt(Vec2 p, int extra)
@@ -168,7 +205,7 @@ namespace SnowballGame.Core
                 k.PathIndex = 0;
                 k.Thrown = false;
                 k.Windup = 0;
-                k.WorkTicks = 0;
+                // WorkTicks carries over: packing a boulder can take more than one turn.
                 k.BuildDone = false;
                 k.MovedThisTurn = false;
                 k.Action = k.Soaked ? KidAction.Soaked : KidAction.Idle;
@@ -176,7 +213,10 @@ namespace SnowballGame.Core
             if (orders != null)
                 foreach (var o in orders)
                     if (o != null && o.KidId >= 0 && o.KidId < Kids.Count && !Kids[o.KidId].Soaked)
+                    {
                         Kids[o.KidId].Order = o;
+                        if (o.Make.HasValue) Kids[o.KidId].MakeType = o.Make.Value;
+                    }
 
             log.Frames.Add(Snapshot());
             for (int tick = 1; tick <= Rules.TurnTicks; tick++)
@@ -215,6 +255,7 @@ namespace SnowballGame.Core
             k.Thrown = false;
             k.Windup = 0;
             k.BuildDone = false;
+            if (o.Make.HasValue) k.MakeType = o.Make.Value;
         }
 
         /// <summary>
@@ -246,6 +287,7 @@ namespace SnowballGame.Core
         {
             var o = k.Order;
             k.Action = KidAction.Idle;
+            if (k.SlowTicks > 0) k.SlowTicks--;
 
             if (o != null && o.HasThrow && o.ThrowFirst && !k.Thrown && k.Ammo > 0)
             {
@@ -289,15 +331,16 @@ namespace SnowballGame.Core
             }
 
             // Standing order: pack snow when there's fresh snow underfoot.
-            if (k.Ammo < k.MaxAmmo && Map.TerrainAt(k.Pos) == Ground.Fresh)
+            // A boulder needs an empty pouch: the kid holds on to what they have until it's thrown.
+            if (k.CanPack(k.MakeType) && Map.TerrainAt(k.Pos) == Ground.Fresh)
             {
                 k.Action = KidAction.Pack;
                 k.WorkTicks++;
-                if (k.WorkTicks >= Rules.PackTicks(k.Def.Craft))
+                if (k.WorkTicks >= Rules.PackTicks(k.MakeType, k.Def.Craft))
                 {
-                    k.Ammo++;
+                    k.Pouch.Add(k.MakeType);
                     k.WorkTicks = 0;
-                    log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Packed, KidId = k.Id, Pos = k.Pos, Amount = k.Ammo });
+                    log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Packed, KidId = k.Id, Pos = k.Pos, Amount = (int)k.MakeType });
                 }
             }
         }
@@ -324,6 +367,7 @@ namespace SnowballGame.Core
                 _ => Rules.FreshSnowSpeedPermille,
             };
             int step = k.SpeedPerTick * permille / 1000;
+            if (k.SlowTicks > 0) step = step * Rules.SlowSpeedPermille / 1000;
             Vec2 next = Vec2.MoveTowards(k.Pos, target, step);
             if (next == k.Pos || !IsPathClear(k.Pos, next))
             {
@@ -353,13 +397,28 @@ namespace SnowballGame.Core
             }
             k.Action = KidAction.Throw;
             k.Thrown = true;
-            k.Ammo--;
             k.WorkTicks = 0;
-            Launch(k, o.Style, o.ThrowTarget, tick, log);
+            var ball = TakeBall(k, o.Ball);
+            Launch(k, ball, ball == SnowballType.Boulder ? ThrowStyle.Roll : o.Style, o.ThrowTarget, tick, log);
         }
 
-        void Launch(Kid k, ThrowStyle style, Vec2 target, int tick, TurnLog log)
+        /// <summary>Takes the asked-for snowball from the pouch, or the oldest one carried.</summary>
+        static SnowballType TakeBall(Kid k, SnowballType? wanted)
         {
+            int i = wanted.HasValue ? k.Pouch.IndexOf(wanted.Value) : -1;
+            if (i < 0) i = 0;
+            var ball = k.Pouch[i];
+            k.Pouch.RemoveAt(i);
+            return ball;
+        }
+
+        /// <summary>The snowball a throw order will actually use, for previews.</summary>
+        public static SnowballType BallFor(Kid k, KidOrder o) =>
+            o.Ball.HasValue && k.Carries(o.Ball.Value) ? o.Ball.Value : k.Pouch.Count > 0 ? k.Pouch[0] : SnowballType.Packed;
+
+        void Launch(Kid k, SnowballType type, ThrowStyle style, Vec2 target, int tick, TurnLog log)
+        {
+            var spec = Rules.Spec(type);
             int range = Rules.MaxRange(style, k.Def.Arm);
             Vec2 to = target - k.Pos;
             int dist = to.Length;
@@ -373,29 +432,42 @@ namespace SnowballGame.Core
                 to = to.WithLength(range);
                 dist = range;
             }
-            int miss = 6 - k.Def.Aim;
-            var p = new Projectile { Id = nextProjectileId++, OwnerId = k.Id, Team = k.Team, Style = style, Start = k.Pos };
+            // Throwing blind into (or through) a powder cloud spoils the aim.
+            int spreadPermille = spec.SpreadPermille;
+            if (IsSightBlocked(k.Pos, k.Pos + to)) spreadPermille = spreadPermille * Rules.CloudBlindSpreadPermille / 1000;
+            int miss = (6 - k.Def.Aim) * spreadPermille;
+            var p = new Projectile { Id = nextProjectileId++, OwnerId = k.Id, Team = k.Team, Style = style, Type = type, Start = k.Pos };
 
-            if (style == ThrowStyle.Line)
+            if (style == ThrowStyle.Roll)
             {
-                int spread = miss * dist / 40;
+                p.Dir = to.WithLength(1000);
+                p.Pos = k.Pos + p.Dir.WithLength(Rules.KidBodyRadius + Rules.BoulderStartRadius + 5);
+                p.RangeLeft = range;
+                p.Radius = Rules.BoulderStartRadius;
+                p.Speed = Rules.BoulderSpeedPerTick;
+            }
+            else if (style == ThrowStyle.Line)
+            {
+                int spread = miss * dist / 40000;
                 Vec2 side = to.Perp.WithLength(rng.Range(-spread, spread));
                 Vec2 dir = (to + side).WithLength(1000);
                 p.Dir = dir;
                 p.Pos = k.Pos + dir.WithLength(Rules.KidBodyRadius + 15);
                 p.RangeLeft = range;
+                p.Speed = Rules.LineSpeedPerTick * spec.SpeedPermille / 1000;
             }
             else
             {
-                int spread = miss * 20 + dist / 50;
+                int spread = (miss * 20 + dist * spreadPermille / 50) / 1000;
                 Vec2 landing = k.Pos + to + new Vec2(rng.Range(-spread, spread), rng.Range(-spread, spread));
                 p.Pos = k.Pos;
                 p.Landing = landing;
-                p.FlightTicks = System.Math.Max(Rules.LobMinFlightTicks, Vec2.Dist(k.Pos, landing) / Rules.LobSpeedPerTick);
+                int speed = Rules.LobSpeedPerTick * spec.SpeedPermille / 1000;
+                p.FlightTicks = System.Math.Max(Rules.LobMinFlightTicks * 1000 / spec.SpeedPermille, Vec2.Dist(k.Pos, landing) / speed);
                 p.Apex = System.Math.Min(500, 150 + Vec2.Dist(k.Pos, landing) / 4);
             }
             projectiles.Add(p);
-            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Thrown, KidId = k.Id, OtherId = p.Id, Pos = k.Pos, Amount = (int)style });
+            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Thrown, KidId = k.Id, OtherId = p.Id, Pos = k.Pos, Amount = (int)type });
         }
 
         void StepProjectiles(int tick, TurnLog log)
@@ -403,15 +475,18 @@ namespace SnowballGame.Core
             foreach (var p in projectiles)
             {
                 if (p.Style == ThrowStyle.Line) StepLine(p, tick, log);
+                else if (p.Style == ThrowStyle.Roll) StepRoll(p, tick, log);
                 else StepLob(p, tick, log);
             }
             projectiles.RemoveAll(p => p.Done);
+            foreach (var c in clouds) c.TicksLeft--;
+            clouds.RemoveAll(c => c.TicksLeft <= 0);
         }
 
         void StepLine(Projectile p, int tick, TurnLog log)
         {
             const int substeps = 4;
-            int step = Rules.LineSpeedPerTick / substeps;
+            int step = p.Speed / substeps;
             for (int s = 0; s < substeps && !p.Done; s++)
             {
                 p.Pos += p.Dir.WithLength(step);
@@ -425,15 +500,23 @@ namespace SnowballGame.Core
                 var c = CoverAt(p.Pos, Rules.ProjectileRadius);
                 if (c != null)
                 {
-                    DamageCover(c, p, tick, log);
-                    p.Done = true;
+                    if (p.Spec.MakesCloud) Splash(p, tick, log);
+                    else
+                    {
+                        DamageCover(c, p, tick, log, Rules.CoverDamagePerHit);
+                        p.Done = true;
+                    }
                     return;
                 }
                 var victim = KidHitAt(p, p.Pos, 0);
                 if (victim != null)
                 {
-                    Chill(victim, p, Rules.LineChill, tick, log);
-                    p.Done = true;
+                    if (p.Spec.MakesCloud) Splash(p, tick, log);
+                    else
+                    {
+                        Chill(victim, p, p.Spec.LineChill, tick, log);
+                        p.Done = true;
+                    }
                     return;
                 }
                 if (p.RangeLeft <= 0)
@@ -450,17 +533,115 @@ namespace SnowballGame.Core
             p.Pos = Vec2.Lerp(p.Start, p.Landing, System.Math.Min(1000, p.Age * 1000 / p.FlightTicks));
             if (p.Age < p.FlightTicks) return;
 
-            var victim = KidHitAt(p, p.Landing, Rules.LobSplashRadius);
-            if (victim != null)
+            var spec = p.Spec;
+            if (spec.MakesCloud)
             {
-                int chill = Rules.LobChill;
+                Splash(p, tick, log);
+                return;
+            }
+            // Slush splatters everyone under it; other snowballs hit the kid nearest the landing spot.
+            var victims = new List<Kid>();
+            if (spec.HitsArea)
+            {
+                foreach (var k in Kids)
+                {
+                    if (k.Soaked || k.Team == p.Team) continue;
+                    long r = k.Def.HitRadius + spec.Splash;
+                    if (Vec2.DistSq(k.Pos, p.Landing) <= r * r) victims.Add(k);
+                }
+            }
+            else
+            {
+                var v = KidHitAt(p, p.Landing, spec.Splash);
+                if (v != null) victims.Add(v);
+            }
+            if (victims.Count == 0)
+            {
+                Splash(p, tick, log);
+                return;
+            }
+            foreach (var victim in victims)
+            {
+                int chill = spec.LobChill;
                 if (!victim.MovedThisTurn && IsNearCover(victim.Pos))
                     chill = chill * Rules.DuckedLobPermille / 1000;
                 Chill(victim, p, chill, tick, log);
-                p.Done = true;
+            }
+            if (spec.HitsArea) log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Splash, KidId = p.OwnerId, OtherId = p.Id, Pos = p.Landing, Amount = (int)p.Type });
+            p.Done = true;
+        }
+
+        /// <summary>
+        /// A boulder rolls along the ground, growing as it picks up snow. It flattens the
+        /// first kid in its way (and shoves them back), thumps cover, and where it comes
+        /// to rest it stays, as a new snowbank.
+        /// </summary>
+        void StepRoll(Projectile p, int tick, TurnLog log)
+        {
+            const int substeps = 2;
+            int step = p.Speed / substeps;
+            p.Radius = System.Math.Min(Rules.BoulderMaxRadius, p.Radius + Rules.BoulderGrowthPerTick);
+            for (int s = 0; s < substeps && !p.Done; s++)
+            {
+                Vec2 next = p.Pos + p.Dir.WithLength(step);
+                if (Map.TerrainAt(next) == Ground.Blocked)
+                {
+                    Settle(p, tick, log);
+                    return;
+                }
+                var c = CoverAt(next, p.Radius);
+                if (c != null)
+                {
+                    DamageCover(c, p, tick, log, Rules.BoulderCoverDamage);
+                    Settle(p, tick, log);
+                    return;
+                }
+                p.Pos = next;
+                p.RangeLeft -= step;
+                var victim = KidHitAt(p, p.Pos, p.Radius - Rules.ProjectileRadius);
+                if (victim != null)
+                {
+                    Chill(victim, p, p.Spec.LineChill, tick, log);
+                    Vec2 push = p.Dir.WithLength(10);
+                    for (int i = 0; i < Rules.BoulderKnockback / 10; i++)
+                    {
+                        Vec2 to = victim.Pos + push;
+                        if (!IsWalkable(to) || Vec2.DistSq(to, p.Pos) < Vec2.DistSq(victim.Pos, p.Pos)) break;
+                        victim.Pos = to;
+                    }
+                    Settle(p, tick, log);
+                    return;
+                }
+                if (p.RangeLeft <= 0)
+                {
+                    Settle(p, tick, log);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>A stopped boulder becomes a snowbank, unless there's no room for one.</summary>
+        void Settle(Projectile p, int tick, TurnLog log)
+        {
+            p.Done = true;
+            bool room = Map.TerrainAt(p.Pos) != Ground.Blocked && CoverAt(p.Pos, p.Radius - 10) == null;
+            foreach (var kid in Kids)
+            {
+                long r = p.Radius + Rules.KidBodyRadius;
+                if (!kid.Soaked && Vec2.DistSq(kid.Pos, p.Pos) < r * r) room = false;
+            }
+            if (!room)
+            {
+                log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Splash, KidId = p.OwnerId, OtherId = p.Id, Pos = p.Pos, Amount = (int)p.Type });
                 return;
             }
-            Splash(p, tick, log);
+            var bank = new Cover
+            {
+                Id = nextCoverId++, Kind = CoverKind.Snowbank, Pos = p.Pos, Radius = p.Radius,
+                Hp = Rules.BoulderCoverHp, MaxHp = Rules.BoulderCoverHp,
+            };
+            Cover.Add(bank);
+            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.CoverBuilt, KidId = p.OwnerId, OtherId = bank.Id, Pos = bank.Pos });
         }
 
         Kid KidHitAt(Projectile p, Vec2 at, int extra)
@@ -484,11 +665,17 @@ namespace SnowballGame.Core
         void Chill(Kid victim, Projectile p, int amount, int tick, TurnLog log)
         {
             // A hit from behind (snowball travelling the way the kid faces) stings more.
-            Vec2 travel = p.Style == ThrowStyle.Line ? p.Dir : p.Landing - p.Start;
+            Vec2 travel = p.Style == ThrowStyle.Lob ? p.Landing - p.Start : p.Dir;
             if (Vec2.Dot(travel, victim.Facing) > 0)
                 amount = amount * Rules.BackHitBonusPermille / 1000;
             victim.Warmth -= amount;
             log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.HitKid, KidId = p.OwnerId, OtherId = victim.Id, Pos = victim.Pos, Amount = amount });
+            int slow = p.Spec.SlowTicks;
+            if (slow > 0 && victim.Warmth > 0)
+            {
+                victim.SlowTicks = System.Math.Max(victim.SlowTicks, slow);
+                log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Slowed, KidId = p.OwnerId, OtherId = victim.Id, Pos = victim.Pos, Amount = slow });
+            }
             if (victim.Warmth <= 0)
             {
                 victim.Warmth = 0;
@@ -498,11 +685,11 @@ namespace SnowballGame.Core
             }
         }
 
-        void DamageCover(Cover c, Projectile p, int tick, TurnLog log)
+        void DamageCover(Cover c, Projectile p, int tick, TurnLog log, int damage)
         {
-            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.CoverHit, KidId = p.OwnerId, OtherId = c.Id, Pos = p.Pos });
+            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.CoverHit, KidId = p.OwnerId, OtherId = c.Id, Pos = p.Pos, Amount = (int)p.Type });
             if (!c.Destructible) return;
-            c.Hp -= Rules.CoverDamagePerHit;
+            c.Hp -= damage;
             if (c.Hp <= 0)
             {
                 c.Hp = 0;
@@ -514,7 +701,13 @@ namespace SnowballGame.Core
         void Splash(Projectile p, int tick, TurnLog log)
         {
             p.Done = true;
-            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Splash, KidId = p.OwnerId, OtherId = p.Id, Pos = p.Style == ThrowStyle.Lob ? p.Landing : p.Pos });
+            Vec2 at = p.Style == ThrowStyle.Lob ? p.Landing : p.Pos;
+            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.Splash, KidId = p.OwnerId, OtherId = p.Id, Pos = at, Amount = (int)p.Type });
+            var spec = p.Spec;
+            if (!spec.MakesCloud) return;
+            var cloud = new Cloud { Id = nextCloudId++, Pos = at, Radius = spec.CloudRadius, TicksLeft = spec.CloudTicks };
+            clouds.Add(cloud);
+            log.Events.Add(new MatchEvent { Tick = tick, Kind = EventKind.CloudCreated, KidId = p.OwnerId, OtherId = cloud.Id, Pos = at, Amount = cloud.Radius });
         }
 
         Frame Snapshot()
@@ -523,19 +716,27 @@ namespace SnowballGame.Core
             for (int i = 0; i < Kids.Count; i++)
             {
                 var k = Kids[i];
-                f.Kids[i] = new KidFrame { Id = k.Id, Pos = k.Pos, Facing = k.Facing, Warmth = k.Warmth, Ammo = k.Ammo, Action = k.Soaked ? KidAction.Soaked : k.Action };
+                f.Kids[i] = new KidFrame
+                {
+                    Id = k.Id, Pos = k.Pos, Facing = k.Facing, Warmth = k.Warmth, Ammo = k.Ammo,
+                    Pouch = k.Pouch.ToArray(), Slowed = k.SlowTicks > 0,
+                    Action = k.Soaked ? KidAction.Soaked : k.Action,
+                };
             }
             foreach (var p in projectiles)
             {
                 int h;
                 if (p.Style == ThrowStyle.Line) h = Rules.LineHeight;
+                else if (p.Style == ThrowStyle.Roll) h = p.Radius;
                 else
                 {
                     int t = System.Math.Min(p.Age, p.FlightTicks), T = p.FlightTicks;
                     h = 100 + 4 * p.Apex * t * (T - t) / (T * T) - 100 * t / T;
                 }
-                f.Projectiles.Add(new ProjectileFrame { Id = p.Id, Style = p.Style, Pos = p.Pos, Height = h });
+                f.Projectiles.Add(new ProjectileFrame { Id = p.Id, Style = p.Style, Type = p.Type, Pos = p.Pos, Height = h, Radius = p.Radius });
             }
+            foreach (var c in clouds)
+                f.Clouds.Add(new CloudFrame { Id = c.Id, Pos = c.Pos, Radius = c.Radius, TicksLeft = c.TicksLeft });
             return f;
         }
 

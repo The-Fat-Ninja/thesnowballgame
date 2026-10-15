@@ -110,21 +110,78 @@ namespace SnowballGame.Core
                     int flight = System.Math.Max(Rules.LobMinFlightTicks, dist / Rules.LobSpeedPerTick);
                     aim = t.Pos + t.Facing.WithLength(t.SpeedPerTick * flight * 7 / 10);
                 }
-                if (match.IsLineOfFireClear(from, aim) && dist <= lineRange)
+                if (k.CarryingBoulder)
                 {
-                    order.HasThrow = true;
-                    order.Style = ThrowStyle.Line;
-                    order.ThrowTarget = Realtime ? t.Pos : aim;
+                    // Only roll it down a clear lane: cover stops a boulder dead.
+                    if (match.IsLineOfFireClear(from, t.Pos) && dist <= Match.MaxRange(k, ThrowStyle.Roll))
+                    {
+                        order.HasThrow = true;
+                        order.Style = ThrowStyle.Roll;
+                        order.Ball = SnowballType.Boulder;
+                        order.ThrowTarget = t.Pos;
+                    }
                 }
-                else if (dist <= lobRange)
+                else
                 {
-                    order.HasThrow = true;
-                    order.Style = ThrowStyle.Lob;
-                    order.ThrowTarget = aim;
+                    var ball = ChooseBall(match, k, from, t);
+                    order.Ball = ball;
+                    bool clear = match.IsLineOfFireClear(from, aim) && dist <= lineRange;
+                    if (ball == SnowballType.Slush && dist <= lobRange)
+                    {
+                        // Slush splatters a wide spot: lob it onto the target.
+                        order.HasThrow = true;
+                        order.Style = ThrowStyle.Lob;
+                        order.ThrowTarget = aim;
+                    }
+                    else if (clear)
+                    {
+                        order.HasThrow = true;
+                        order.Style = ThrowStyle.Line;
+                        order.ThrowTarget = Realtime ? t.Pos : aim;
+                    }
+                    else if (dist <= lobRange)
+                    {
+                        order.HasThrow = true;
+                        order.Style = ThrowStyle.Lob;
+                        order.ThrowTarget = aim;
+                    }
                 }
                 order.ThrowFirst = Realtime;
             }
+
+            // Powder kids keep a mixed pouch: one puff for cover, the rest to throw.
+            if (k.Def.Favourite == SnowballType.Powder)
+                order.Make = k.Carries(SnowballType.Powder) ? SnowballType.Packed : SnowballType.Powder;
             return order;
+        }
+
+        /// <summary>
+        /// Which snowball to throw: a powder puff at an enemy who has a clear shot at us,
+        /// otherwise the hardest-hitting snowball carried.
+        /// </summary>
+        SnowballType ChooseBall(Match match, Kid k, Vec2 from, Kid target)
+        {
+            bool hasHitter = false;
+            foreach (var b in k.Pouch)
+                if (b != SnowballType.Powder) hasHitter = true;
+            if (k.Carries(SnowballType.Powder))
+            {
+                bool threatened = match.IsLineOfFireClear(target.Pos, from) && Vec2.Dist(from, target.Pos) < 1200;
+                if (!hasHitter || threatened && rng.Range(0, 99) < 60) return SnowballType.Powder;
+            }
+            SnowballType best = k.Pouch[0];
+            int bestChill = -1;
+            foreach (var b in k.Pouch)
+            {
+                if (b == SnowballType.Powder) continue;
+                int chill = Rules.Spec(b).LineChill;
+                if (chill > bestChill)
+                {
+                    best = b;
+                    bestChill = chill;
+                }
+            }
+            return best;
         }
 
         Kid Nearest(Match match, Vec2 from)

@@ -25,6 +25,37 @@ namespace SnowballGame.Presentation
 
         public static Color Team(int team) => team == Match.Home ? Ember : Plum;
 
+        /// <summary>Each snowball type's colour: in flight, in the pouch and on the snow.</summary>
+        public static Color Ball(SnowballType t) => t switch
+        {
+            SnowballType.Quick => Hex("#9FE3FF"),
+            SnowballType.Slush => Hex("#6F8BA8"),
+            SnowballType.Powder => Hex("#E7DDFF"),
+            SnowballType.Boulder => SnowLight,
+            _ => Color.white,
+        };
+
+        /// <summary>Darker shade of a ball's colour for plan lines, which sit on white snow.</summary>
+        public static Color BallLine(SnowballType t) => t switch
+        {
+            SnowballType.Quick => Hex("#1E9BD7"),
+            SnowballType.Slush => Hex("#3E5A78"),
+            SnowballType.Powder => Hex("#9575CD"),
+            SnowballType.Boulder => Cocoa,
+            _ => Color.white,
+        };
+
+        /// <summary>Diameter in metres of a thrown snowball of this type.</summary>
+        public static float BallSize(SnowballType t) => t switch
+        {
+            SnowballType.Quick => 0.15f,
+            SnowballType.Slush => 0.27f,
+            SnowballType.Powder => 0.3f,
+            _ => 0.22f,
+        };
+
+        public static string BallName(SnowballType t) => Rules.Spec(t).Name;
+
         public static Color Hex(string hex) =>
             ColorUtility.TryParseHtmlString(hex, out var c) ? c : Color.magenta;
     }

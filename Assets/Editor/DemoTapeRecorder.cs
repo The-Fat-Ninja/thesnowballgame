@@ -11,8 +11,9 @@ namespace SnowballGame.EditorTools
     /// Records side-by-side comparison footage of the two play styles as MP4
     /// (1920x1080, 30 fps) without entering play mode:
     ///   Unity -batchmode -quit -projectPath . -executeMethod SnowballGame.EditorTools.DemoTapeRecorder.Run
-    /// Output: Recordings/RealtimeDemo.mp4 and Recordings/WegoDemo.mp4, plus stills
-    /// every ten seconds in Recordings/Stills/.
+    /// Output: Recordings/RealtimeDemo.mp4, Recordings/WegoDemo.mp4 and
+    /// Recordings/SnowballTypes.mp4, plus stills every ten seconds in Recordings/Stills/.
+    /// "Snowball Game > Record Snowball Showcase" records only the snowball tour.
     /// </summary>
     public static class DemoTapeRecorder
     {
@@ -26,12 +27,20 @@ namespace SnowballGame.EditorTools
         public static void Run()
         {
             Directory.CreateDirectory("Recordings/Stills");
-            Record(DemoDirector.Style.Realtime, "Recordings/RealtimeDemo.mp4");
-            Record(DemoDirector.Style.Wego, "Recordings/WegoDemo.mp4");
+            Record("Realtime", "Recordings/RealtimeDemo.mp4", 10f, (lit, unlit, parent, cam) => new DemoDirector(DemoDirector.Style.Realtime, lit, unlit, parent, cam, Seed));
+            Record("Wego", "Recordings/WegoDemo.mp4", 10f, (lit, unlit, parent, cam) => new DemoDirector(DemoDirector.Style.Wego, lit, unlit, parent, cam, Seed));
+            RecordShowcase();
             Debug.Log("[DemoTapeRecorder] Wrote Recordings/.");
         }
 
-        static void Record(DemoDirector.Style style, string path)
+        [MenuItem("Snowball Game/Record Snowball Showcase")]
+        public static void RecordShowcase()
+        {
+            Directory.CreateDirectory("Recordings/Stills");
+            Record("SnowballTypes", "Recordings/SnowballTypes.mp4", 1f, (lit, unlit, parent, cam) => new SnowballShowcase(lit, unlit, parent, cam));
+        }
+
+        static void Record(string name, string path, float stillEvery, System.Func<Material, Material, Transform, Camera, IDemoTape> make)
         {
             EditorSceneManager.OpenScene("Assets/Scenes/MapleCourt.unity", OpenSceneMode.Single);
             var ctrl = Object.FindAnyObjectByType<MatchController>();
@@ -43,7 +52,7 @@ namespace SnowballGame.EditorTools
             var rt = new RenderTexture(Width, Height, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
             cam.targetTexture = rt;
             var tex = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
-            var director = new DemoDirector(style, lit, unlit, ctrl.transform, cam, Seed);
+            var director = make(lit, unlit, ctrl.transform, cam);
             DynamicGI.UpdateEnvironment();
 
             var video = new VideoTrackAttributes
@@ -73,8 +82,8 @@ namespace SnowballGame.EditorTools
                     if (director.Seconds >= nextStill)
                     {
                         tex.Apply();
-                        File.WriteAllBytes($"Recordings/Stills/{style}_{(int)nextStill:00}s.png", tex.EncodeToPNG());
-                        nextStill += 10f;
+                        File.WriteAllBytes($"Recordings/Stills/{name}_{nextStill:00}s.png", tex.EncodeToPNG());
+                        nextStill += stillEvery;
                     }
                     frame++;
                 }
@@ -84,7 +93,7 @@ namespace SnowballGame.EditorTools
             director.Dispose();
             Object.DestroyImmediate(rt);
             Object.DestroyImmediate(tex);
-            Debug.Log($"[DemoTapeRecorder] {style}: {frame} frames ({frame / (float)Fps:0.0} s) -> {path}");
+            Debug.Log($"[DemoTapeRecorder] {name}: {frame} frames ({frame / (float)Fps:0.0} s) -> {path}");
         }
     }
 }

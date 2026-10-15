@@ -9,17 +9,17 @@ namespace SnowballGame.Core
         public static List<KidDef> MapleCourtCrew() => new List<KidDef>
         {
             new KidDef("Maisie", "Thrower", 5, 4, 3, 2, 2, "#2BA6A0"),
-            new KidDef("Bernard", "Builder", 2, 3, 2, 4, 5, "#6D7A8C"),
-            new KidDef("Pip", "Scout", 2, 2, 5, 2, 3, "#FFD23F") { HitRadius = Rules.SmallHitRadius },
-            new KidDef("Rosa", "Support", 2, 3, 3, 4, 3, "#C8382E"),
+            new KidDef("Bernard", "Builder", 2, 3, 2, 4, 5, "#6D7A8C") { Favourite = SnowballType.Slush },
+            new KidDef("Pip", "Scout", 2, 2, 5, 2, 3, "#FFD23F") { HitRadius = Rules.SmallHitRadius, Favourite = SnowballType.Quick },
+            new KidDef("Rosa", "Support", 2, 3, 3, 4, 3, "#C8382E") { Favourite = SnowballType.Powder },
         };
 
         public static List<KidDef> HillRoadHooligans() => new List<KidDef>
         {
-            new KidDef("Tobias", "Heavy", 3, 2, 2, 5, 3, "#2E7D4F"),
+            new KidDef("Tobias", "Heavy", 3, 2, 2, 5, 3, "#2E7D4F") { Favourite = SnowballType.Boulder },
             new KidDef("Ada", "Thrower", 4, 3, 2, 2, 4, "#E0A93A") { MaxAmmo = 3 },
-            new KidDef("Felix", "Trickster", 3, 3, 4, 2, 3, "#3B6FB6"),
-            new KidDef("Jun", "Scout", 4, 5, 3, 2, 1, "#4E8F6A"),
+            new KidDef("Felix", "Trickster", 3, 3, 4, 2, 3, "#3B6FB6") { Favourite = SnowballType.Powder },
+            new KidDef("Jun", "Scout", 4, 5, 3, 2, 1, "#4E8F6A") { Favourite = SnowballType.Quick },
         };
 
         public static List<KidDef> Take(List<KidDef> crew, int count) =>

@@ -16,7 +16,7 @@ namespace SnowballGame.Presentation
     /// WEGO: each turn shows a planning beat with the home crew's plans drawn, then
     /// both crews' plans play out for three seconds.
     /// </summary>
-    public sealed class DemoDirector
+    public sealed class DemoDirector : IDemoTape
     {
         public enum Style { Realtime, Wego }
 
@@ -36,8 +36,7 @@ namespace SnowballGame.Presentation
         readonly Dictionary<int, KidOrder> current = new Dictionary<int, KidOrder>();
         readonly PlaybackView playback;
         readonly PlanOverlay plans;
-        Text title, subtitle, clock, score, cardTitle, cardBody;
-        GameObject card;
+        readonly DemoCaptions captions;
 
         float time;
         float outro = -1f;
@@ -75,7 +74,7 @@ namespace SnowballGame.Presentation
             plans = new PlanOverlay(box, root, match);
             MatchController.FrameCamera(cam, match.Map);
 
-            BuildCaptions();
+            captions = new DemoCaptions(root, cam);
             ShowCard(realtime ? "REAL-TIME" : "WEGO",
                 realtime
                     ? "Concept footage · same rules core, no pauses\nYou steer one kid (ringed); AI runs the rest of your crew"
@@ -98,7 +97,7 @@ namespace SnowballGame.Presentation
 
             if (time < IntroSeconds)
             {
-                card.SetActive(true);
+                captions.Card.SetActive(true);
             }
             else if (outro >= 0f)
             {
@@ -107,7 +106,7 @@ namespace SnowballGame.Presentation
             }
             else
             {
-                card.SetActive(false);
+                captions.Card.SetActive(false);
                 if (style == Style.Realtime) AdvanceRealtime(dt);
                 else AdvanceWego(dt);
                 if (match.Outcome != MatchOutcome.InProgress && (style == Style.Realtime || !planning && turnLog == null))
@@ -117,7 +116,7 @@ namespace SnowballGame.Presentation
         }
 
         /// <summary>Call just before rendering so the captions lay out in edit mode.</summary>
-        public void PrepareRender() => Canvas.ForceUpdateCanvases();
+        public void PrepareRender() => DemoCaptions.PrepareRender();
 
         // --------------------------------------------------------------- real time
 
@@ -237,20 +236,20 @@ namespace SnowballGame.Presentation
 
         void UpdateCaptions()
         {
-            title.text = style == Style.Realtime ? "REAL-TIME (concept)" : "WEGO (prototype)";
+            captions.Title.text = style == Style.Realtime ? "REAL-TIME (concept)" : "WEGO (prototype)";
             if (style == Style.Realtime)
-                subtitle.text = "Continuous play · orders change any time · ringed kid = you";
+                captions.Subtitle.text = "Continuous play · orders change any time · ringed kid = you";
             else if (planning)
-                subtitle.text = $"Turn {match.Turn} · PLANNING — time is frozen while you plan";
+                captions.Subtitle.text = $"Turn {match.Turn} · PLANNING — time is frozen while you plan";
             else if (turnLog != null)
-                subtitle.text = $"Turn {turnLog.Turn} · GO! — both crews' plans play out";
+                captions.Subtitle.text = $"Turn {turnLog.Turn} · GO! — both crews' plans play out";
             else
-                subtitle.text = "";
-            clock.text = Clock();
+                captions.Subtitle.text = "";
+            captions.Clock.text = Clock();
             int home = 0, away = 0;
             foreach (var k in match.Kids)
                 if (!k.Soaked) { if (k.Team == Match.Home) home++; else away++; }
-            score.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Palette.Ember)}>Maple Court {home}</color>  v  <color=#{ColorUtility.ToHtmlStringRGB(Palette.Plum)}>{away} Hill Road</color>";
+            captions.Score.text = $"<color=#{ColorUtility.ToHtmlStringRGB(Palette.Ember)}>Maple Court {home}</color>  v  <color=#{ColorUtility.ToHtmlStringRGB(Palette.Plum)}>{away} Hill Road</color>";
         }
 
         string Clock()
@@ -259,85 +258,14 @@ namespace SnowballGame.Presentation
             return $"{(int)t / 60}:{(int)t % 60:00}";
         }
 
-        void ShowCard(string heading, string body)
-        {
-            card.SetActive(true);
-            cardTitle.text = heading;
-            cardBody.text = body;
-        }
+        void ShowCard(string heading, string body) => captions.ShowCard(heading, body);
 
         Frame Snapshot()
         {
             var f = new Frame { Kids = new KidFrame[match.Kids.Count] };
             foreach (var k in match.Kids)
-                f.Kids[k.Id] = new KidFrame { Id = k.Id, Pos = k.Pos, Facing = k.Facing, Warmth = k.Warmth, Ammo = k.Ammo, Action = KidAction.Idle };
+                f.Kids[k.Id] = new KidFrame { Id = k.Id, Pos = k.Pos, Facing = k.Facing, Warmth = k.Warmth, Ammo = k.Ammo, Pouch = k.Pouch.ToArray(), Action = KidAction.Idle };
             return f;
-        }
-
-        Canvas BuildCaptions()
-        {
-            var go = new GameObject("Captions", typeof(Canvas), typeof(CanvasScaler));
-            go.transform.SetParent(root, false);
-            var c = go.GetComponent<Canvas>();
-            c.renderMode = RenderMode.ScreenSpaceCamera;
-            c.worldCamera = cam;
-            c.planeDistance = 1f;
-            var scaler = go.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight = 0.5f;
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
-            var strip = Panel(go.transform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(24, -24), new Vector2(980, 120), new Color(1, 1, 1, 0.88f));
-            title = Label(strip, font, 46, FontStyle.Bold, TextAnchor.UpperLeft, new Vector2(24, -12), new Vector2(940, 60));
-            subtitle = Label(strip, font, 26, FontStyle.Normal, TextAnchor.UpperLeft, new Vector2(24, -70), new Vector2(940, 40));
-
-            var right = Panel(go.transform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24, -24), new Vector2(520, 120), new Color(1, 1, 1, 0.88f));
-            clock = Label(right, font, 46, FontStyle.Bold, TextAnchor.UpperRight, new Vector2(-24, -12), new Vector2(480, 60));
-            score = Label(right, font, 28, FontStyle.Bold, TextAnchor.UpperRight, new Vector2(-24, -70), new Vector2(480, 40));
-
-            var cardT = Panel(go.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1240, 380), new Color(0.165f, 0.141f, 0.22f, 0.9f));
-            card = cardT.gameObject;
-            cardTitle = Label(cardT, font, 96, FontStyle.Bold, TextAnchor.MiddleCenter, new Vector2(0, 90), new Vector2(1200, 130), true);
-            cardTitle.color = Palette.Ember;
-            cardBody = Label(cardT, font, 38, FontStyle.Normal, TextAnchor.MiddleCenter, new Vector2(0, -70), new Vector2(1200, 180), true);
-            cardBody.color = Color.white;
-            return c;
-        }
-
-        static Transform Panel(Transform parent, Vector2 anchor, Vector2 pivot, Vector2 pos, Vector2 size, Color colour)
-        {
-            var go = new GameObject("Panel", typeof(RectTransform), typeof(Image));
-            go.transform.SetParent(parent, false);
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = anchor;
-            rt.pivot = pivot;
-            rt.anchoredPosition = pos;
-            rt.sizeDelta = size;
-            go.GetComponent<Image>().color = colour;
-            return go.transform;
-        }
-
-        static Text Label(Transform parent, Font font, int size, FontStyle fs, TextAnchor align, Vector2 pos, Vector2 box, bool centred = false)
-        {
-            var go = new GameObject("Text", typeof(RectTransform), typeof(Text));
-            go.transform.SetParent(parent, false);
-            var rt = (RectTransform)go.transform;
-            Vector2 a = centred ? new Vector2(0.5f, 0.5f)
-                : align == TextAnchor.UpperRight ? new Vector2(1f, 1f) : new Vector2(0f, 1f);
-            rt.anchorMin = rt.anchorMax = a;
-            rt.pivot = a;
-            rt.anchoredPosition = pos;
-            rt.sizeDelta = box;
-            var t = go.GetComponent<Text>();
-            t.font = font;
-            t.fontSize = size;
-            t.fontStyle = fs;
-            t.alignment = align;
-            t.color = Palette.Ink;
-            t.supportRichText = true;
-            t.raycastTarget = false;
-            return t;
         }
     }
 }

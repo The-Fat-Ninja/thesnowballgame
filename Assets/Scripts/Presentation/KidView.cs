@@ -21,6 +21,7 @@ namespace SnowballGame.Presentation
         readonly Material coatMat;
         readonly Material flashMat;
         readonly GameObject ring;
+        readonly GameObject slowRing;
         readonly GameObject[] pips;
         readonly Greybox box;
         float flash;
@@ -64,6 +65,8 @@ namespace SnowballGame.Presentation
 
             ring = box.Prim(PrimitiveType.Cylinder, Root, new Vector3(0, 0.01f, 0), new Vector3(1.4f, 0.01f, 1.4f), Palette.Glow, "SelectionRing");
             ring.SetActive(false);
+            slowRing = box.Prim(PrimitiveType.Cylinder, Root, new Vector3(0, 0.02f, 0), new Vector3(1.1f, 0.015f, 1.1f), Palette.Ball(SnowballType.Slush), "SlushPuddle");
+            slowRing.SetActive(false);
 
             hud = new GameObject("Hud").transform;
             hud.SetParent(Root, false);
@@ -75,7 +78,7 @@ namespace SnowballGame.Presentation
             for (int i = 0; i < pips.Length; i++)
                 pips[i] = box.Prim(PrimitiveType.Sphere, hud, new Vector3(-0.2f + i * 0.2f, 0.18f, 0), Vector3.one * 0.13f, Color.white, "Snowball");
 
-            Apply(new KidFrame { Pos = kid.Pos, Facing = kid.Facing, Warmth = kid.Warmth, Ammo = kid.Ammo, Action = kid.Soaked ? KidAction.Soaked : KidAction.Idle }, kid.MaxWarmth, kid.MaxAmmo);
+            Apply(new KidFrame { Pos = kid.Pos, Facing = kid.Facing, Warmth = kid.Warmth, Ammo = kid.Ammo, Pouch = kid.Pouch.ToArray(), Action = kid.Soaked ? KidAction.Soaked : KidAction.Idle }, kid.MaxWarmth, kid.MaxAmmo);
         }
 
         public void Apply(KidFrame f, int maxWarmth, int maxAmmo) => Apply(f, f, 0f, maxWarmth, maxAmmo);
@@ -95,7 +98,8 @@ namespace SnowballGame.Presentation
             float frac = Mathf.Clamp01(b.Warmth / (float)Mathf.Max(1, maxWarmth));
             warmthFill.localScale = new Vector3(0.8f * frac, 0.08f, 0.02f);
             warmthFill.localPosition = new Vector3(-0.4f * (1f - frac), 0, -0.012f);
-            for (int i = 0; i < pips.Length; i++) pips[i].SetActive(i < maxAmmo && i < b.Ammo && !soaked);
+            ShowPouch(b.Pouch, maxAmmo);
+            slowRing.SetActive(b.Slowed && !soaked);
 
             Vector3 offset = Vector3.zero;
             Quaternion tilt = Quaternion.identity;
@@ -125,6 +129,24 @@ namespace SnowballGame.Presentation
             body.localRotation *= tilt;
             hud.gameObject.SetActive(!soaked);
             coat.sharedMaterial = flash > 0 ? flashMat : soaked ? box.Lit(Color.Lerp(coatMat.color, Palette.DeepShadow, 0.6f)) : coatMat;
+        }
+
+        /// <summary>One pip per snowball, coloured by type; a boulder shows as one big pip.</summary>
+        void ShowPouch(SnowballType[] pouch, int maxAmmo)
+        {
+            int n = pouch == null ? 0 : pouch.Length;
+            bool boulder = n == 1 && pouch[0] == SnowballType.Boulder;
+            for (int i = 0; i < pips.Length; i++)
+            {
+                bool on = !soaked && i < n && i < maxAmmo;
+                pips[i].SetActive(on);
+                if (!on) continue;
+                var type = pouch[i];
+                pips[i].GetComponent<Renderer>().sharedMaterial = box.Lit(Palette.Ball(type));
+                float size = boulder ? 0.3f : type == SnowballType.Quick ? 0.1f : type == SnowballType.Slush || type == SnowballType.Powder ? 0.15f : 0.13f;
+                pips[i].transform.localScale = Vector3.one * size;
+                pips[i].transform.localPosition = boulder ? new Vector3(0, 0.24f, 0) : new Vector3(-0.2f + i * 0.2f, 0.18f, 0);
+            }
         }
 
         public void Flash() => flash = 0.18f;

@@ -89,16 +89,24 @@ kid's thermos, and never in the open during a blizzard.
 - Each kid carries 1–3 snowballs (depends on the kid).
 - **Scoop** anywhere there is loose snow. Packed paths, ice and indoors have
   none — map design uses this.
-- **Pack** time depends on snowball type. Faster in fresh powder, slower in
-  slush.
+- **Pack** time depends on snowball type (and the kid's Craft).
+- A kid carries a **mixed pouch**; you choose which snowball to throw and what
+  to make next. Every kid has a **favourite** they make by default.
 
-| Snowball | Make time | Effect |
-|---|---|---|
-| Quick ball | very short | Light chill, fast flat throw |
-| Packed ball | medium | Standard damage, good arc |
-| Slushball | medium (needs slush) | Splash, Slows target |
-| Powder puff | short | No damage, creates a cloud that blocks line of sight |
-| Rolled boulder | long (rolled across snow; grows as it rolls) | Big knockback, becomes cover where it stops |
+As built in the prototype (numbers in `Rules.cs`; chill is per hit, before the
+back-hit bonus):
+
+| Snowball | Make time | Line / lob chill | What makes it different |
+|---|---|---|---|
+| **Packed** | 1.0× | 25 / 20 | The all-rounder. |
+| **Quick** | 0.45× | 15 / 12 | Flies 35% faster with 30% less spread; small landing spot. |
+| **Slush** | 1.3× | 15 / 15 | Lobbed, it hits **everyone** within 1.3 m of where it lands, and **slows** whoever it hits to 55% pace for 3 s. Slower in flight. |
+| **Powder puff** | 0.6× | 0 / 0 | Bursts into a **cloud** (1.7 m, 4 s). Line drives can't see through it (AI and plan lines treat it as blocked), and any throw into, out of or through it has **3× spread**. |
+| **Boulder** | 40 − 4×Craft ticks; needs an empty pouch and fills it | 35 | **Rolled**, not thrown: grows from 0.3 m to 0.75 m as it rolls, flattens and **shoves back** the first enemy, thumps cover for 40, and **becomes a snowbank** where it stops. |
+
+Favourites: Pip & Jun Quick · Bernard Slush · Rosa & Felix Powder · Tobias
+Boulder · Maisie & Ada Packed. Design draft note: slush was meant to need slush
+terrain; the prototype lets any kid make it on fresh snow, more slowly.
 
 ### Throwing
 

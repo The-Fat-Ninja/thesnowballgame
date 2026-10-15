@@ -113,14 +113,16 @@ namespace SnowballGame.Presentation
             hud = new Hud();
             hud.Build(transform);
             var bottom = new Vector2(0.5f, 0f);
-            var size = new Vector2(190, 90);
+            var size = new Vector2(165, 90);
             Color idle = new Color(1, 1, 1, 0.92f);
-            hud.AddButton("move", "Walk", bottom, new Vector2(-560, 60), size, idle, () => SetMode(Mode.Move));
-            hud.AddButton("line", "Line drive", bottom, new Vector2(-360, 60), size, idle, () => SetMode(Mode.Line));
-            hud.AddButton("lob", "Lob", bottom, new Vector2(-160, 60), size, idle, () => SetMode(Mode.Lob));
-            hud.AddButton("build", "Build wall", bottom, new Vector2(40, 60), size, idle, () => SetMode(Mode.Build));
-            hud.AddButton("first", "Throw first", bottom, new Vector2(240, 60), size, idle, ToggleThrowFirst);
-            hud.AddButton("clear", "Clear", bottom, new Vector2(440, 60), size, idle, ClearSelected);
+            hud.AddButton("move", "Walk", bottom, new Vector2(-660, 60), size, idle, () => SetMode(Mode.Move));
+            hud.AddButton("line", "Line drive", bottom, new Vector2(-485, 60), size, idle, () => SetMode(Mode.Line));
+            hud.AddButton("lob", "Lob", bottom, new Vector2(-310, 60), size, idle, () => SetMode(Mode.Lob));
+            hud.AddButton("ball", "Ball", bottom, new Vector2(-135, 60), size, idle, CycleBall);
+            hud.AddButton("make", "Make", bottom, new Vector2(40, 60), size, idle, CycleMake);
+            hud.AddButton("build", "Build wall", bottom, new Vector2(215, 60), size, idle, () => SetMode(Mode.Build));
+            hud.AddButton("first", "Throw first", bottom, new Vector2(390, 60), size, idle, ToggleThrowFirst);
+            hud.AddButton("clear", "Clear", bottom, new Vector2(565, 60), size, idle, ClearSelected);
             hud.AddButton("go", "GO!", new Vector2(1f, 0f), new Vector2(-130, 70), new Vector2(220, 110), Palette.Ember, Go);
             hud.AddButton("next", "Next kid", new Vector2(1f, 0f), new Vector2(-130, 200), new Vector2(220, 80), idle, SelectNext);
             hud.AddResultButton("result_again", "Play again", NewMatch);
@@ -182,6 +184,8 @@ namespace SnowballGame.Presentation
                 if (kb.oKey.wasPressedThisFrame) SetMode(Mode.Lob);
                 if (kb.bKey.wasPressedThisFrame) SetMode(Mode.Build);
                 if (kb.fKey.wasPressedThisFrame) ToggleThrowFirst();
+                if (kb.tKey.wasPressedThisFrame) CycleBall();
+                if (kb.pKey.wasPressedThisFrame) CycleMake();
                 if (kb.backspaceKey.wasPressedThisFrame || kb.deleteKey.wasPressedThisFrame) ClearSelected();
                 var homeKids = HomeKids();
                 for (int i = 0; i < homeKids.Count && i < 4; i++)
@@ -225,7 +229,7 @@ namespace SnowballGame.Presentation
                     }
                     var enemy = KidNear(p, Match.Away, 110);
                     order.HasThrow = true;
-                    order.Style = act == Mode.Lob ? ThrowStyle.Lob : ThrowStyle.Line;
+                    order.Style = kid.CarryingBoulder ? ThrowStyle.Roll : act == Mode.Lob ? ThrowStyle.Lob : ThrowStyle.Line;
                     order.ThrowTarget = enemy != null ? enemy.Pos : p;
                     mode = Mode.Move;
                     break;
@@ -318,6 +322,39 @@ namespace SnowballGame.Presentation
             RefreshHud();
         }
 
+        /// <summary>Picks the next type of snowball the selected kid is carrying to throw.</summary>
+        void CycleBall()
+        {
+            if (selected < 0 || phase != Phase.Planning) return;
+            var kid = match.KidById(selected);
+            var carried = new List<SnowballType>();
+            foreach (var b in kid.Pouch)
+                if (!carried.Contains(b)) carried.Add(b);
+            if (carried.Count == 0)
+            {
+                Flash($"{kid.Def.Name} has no snowballs to choose from.");
+                return;
+            }
+            var o = OrderFor(selected);
+            var now = Match.BallFor(kid, o);
+            int i = carried.IndexOf(now);
+            o.Ball = carried[(i + 1) % carried.Count];
+            RefreshHud();
+        }
+
+        /// <summary>Changes what the selected kid packs from now on.</summary>
+        void CycleMake()
+        {
+            if (selected < 0 || phase != Phase.Planning) return;
+            var kid = match.KidById(selected);
+            var o = OrderFor(selected);
+            var now = o.Make ?? kid.MakeType;
+            o.Make = (SnowballType)(((int)now + 1) % System.Enum.GetValues(typeof(SnowballType)).Length);
+            if (o.Make == SnowballType.Boulder && kid.Ammo > 0)
+                Flash($"A boulder needs empty hands: {kid.Def.Name} throws what they carry first.");
+            RefreshHud();
+        }
+
         void ClearSelected()
         {
             if (selected < 0 || phase != Phase.Planning) return;
@@ -403,7 +440,8 @@ namespace SnowballGame.Presentation
                 var kid = match.KidById(selected);
                 orders.TryGetValue(selected, out var o);
                 Vec2 origin = o != null && !o.ThrowFirst ? Match.PathEnd(kid, o.Path) : kid.Pos;
-                plans.Circle(origin, Match.MaxRange(kid, mode == Mode.Lob ? ThrowStyle.Lob : ThrowStyle.Line), Palette.Team(Match.Home), 0.06f);
+                var style = kid.CarryingBoulder ? ThrowStyle.Roll : mode == Mode.Lob ? ThrowStyle.Lob : ThrowStyle.Line;
+                plans.Circle(origin, Match.MaxRange(kid, style), Palette.Team(Match.Home), 0.06f);
             }
             if (selected >= 0 && mode == Mode.Move)
                 plans.Circle(match.KidById(selected).Pos, Match.MoveReach(match.KidById(selected)), Palette.SnowShadow, 0.05f);
@@ -429,14 +467,17 @@ namespace SnowballGame.Presentation
             {
                 var k = match.KidById(selected);
                 orders.TryGetValue(selected, out var o);
+                var ball = o != null ? Match.BallFor(k, o) : k.Pouch.Count > 0 ? k.Pouch[0] : SnowballType.Packed;
+                var make = o?.Make ?? k.MakeType;
+                string verb = k.CarryingBoulder ? "roll the boulder" : o != null && o.Style == ThrowStyle.Lob ? $"lob a {Palette.BallName(ball)}" : $"line drive a {Palette.BallName(ball)}";
                 string plan = o == null ? "standing order: hold and pack snow"
                     : $"{(o.Path.Count > 0 ? $"walk ({o.Path.Count} pts)" : "hold")}"
-                      + (o.HasThrow ? $", {(o.Style == ThrowStyle.Lob ? "lob" : "line drive")}{(o.ThrowFirst ? " first" : "")}" : "")
+                      + (o.HasThrow ? $", {verb}{(o.ThrowFirst ? " first" : "")}" : "")
                       + (o.HasBuild ? ", build wall" : "");
                 hud.KidCard.text =
-                    $"<b>{k.Def.Name}</b> · {k.Def.Role}\n" +
-                    $"Warmth {k.Warmth}/{k.MaxWarmth} · Snowballs {k.Ammo}/{k.MaxAmmo}\n" +
-                    $"Arm {k.Def.Arm} Aim {k.Def.Aim} Hustle {k.Def.Hustle} Grit {k.Def.Grit} Craft {k.Def.Craft}\n" +
+                    $"<b>{k.Def.Name}</b> · {k.Def.Role} · Warmth {k.Warmth}/{k.MaxWarmth}\n" +
+                    $"Pouch: {PouchText(k)}\n" +
+                    $"Makes: <b>{Palette.BallName(make)}</b> ({Rules.PackTicks(make, k.Def.Craft) / (float)Rules.TicksPerSecond:0.#} s each) · {TypeBlurb(make)}\n" +
                     $"Plan: {plan}";
             }
             else hud.KidCard.text = "";
@@ -448,6 +489,19 @@ namespace SnowballGame.Presentation
             hud.SetButtonColour("build", mode == Mode.Build ? on : idle);
             bool first = selected >= 0 && orders.TryGetValue(selected, out var so) && so.ThrowFirst;
             hud.SetButtonColour("first", first ? on : idle);
+            if (selected >= 0)
+            {
+                var k = match.KidById(selected);
+                orders.TryGetValue(selected, out var ko);
+                var ball = ko != null ? Match.BallFor(k, ko) : k.Pouch.Count > 0 ? k.Pouch[0] : SnowballType.Packed;
+                hud.SetButtonLabel("ball", k.Ammo == 0 ? "Ball: none" : $"Ball: {Palette.BallName(ball)}");
+                hud.SetButtonColour("ball", k.Ammo == 0 ? idle : Palette.Ball(ball));
+                var make = ko?.Make ?? k.MakeType;
+                hud.SetButtonLabel("make", $"Make: {Palette.BallName(make)}");
+                hud.SetButtonColour("make", Palette.Ball(make));
+                hud.SetButtonLabel("line", k.CarryingBoulder ? "Roll" : "Line drive");
+                hud.SetButtonLabel("lob", k.CarryingBoulder ? "Roll" : "Lob");
+            }
             hud.SetInteractable(phase == Phase.Planning);
         }
 
@@ -463,11 +517,34 @@ namespace SnowballGame.Presentation
                 {
                     int pct = k.Warmth * 100 / k.MaxWarmth;
                     bool planned = team == Match.Home && orders.ContainsKey(k.Id);
-                    sb.Append($"{k.Def.Name}  warmth {pct}%  balls {k.Ammo}{(planned ? "  <b>[plan]</b>" : "")}\n");
+                    sb.Append($"{k.Def.Name}  {pct}%  {PouchText(k, true)}{(k.SlowTicks > 0 ? "  <i>slowed</i>" : "")}{(planned ? "  <b>[plan]</b>" : "")}\n");
                 }
             }
             return sb.ToString();
         }
+
+        /// <summary>The pouch as coloured names (or initials, for the roster).</summary>
+        static string PouchText(Kid k, bool shortForm = false)
+        {
+            if (k.Pouch.Count == 0) return shortForm ? "-" : "empty";
+            var parts = new List<string>();
+            foreach (var b in k.Pouch)
+            {
+                string name = Palette.BallName(b);
+                string hex = ColorUtility.ToHtmlStringRGB(Palette.BallLine(b) == Color.white ? Palette.Ink : Palette.BallLine(b));
+                parts.Add($"<color=#{hex}>{(shortForm ? name.Substring(0, 2) : name)}</color>");
+            }
+            return string.Join(shortForm ? " " : ", ", parts);
+        }
+
+        static string TypeBlurb(SnowballType t) => t switch
+        {
+            SnowballType.Quick => "fast and true, stings less",
+            SnowballType.Slush => "splashes wide, slows kids",
+            SnowballType.Powder => "no sting; cloud blocks shots",
+            SnowballType.Boulder => "roll it: flattens, leaves a snowbank",
+            _ => "the all-rounder",
+        };
 
         void RefreshHint()
         {
@@ -479,8 +556,10 @@ namespace SnowballGame.Presentation
             }
             hud.Hint.text = phase != Phase.Planning ? "" : mode switch
             {
-                Mode.Line => "Tap a target for a line drive (fast and flat; cover stops it)",
-                Mode.Lob => "Tap a target spot for a lob (arcs over cover; they can dodge)",
+                Mode.Line when selected >= 0 && match.KidById(selected).CarryingBoulder => "Tap where to roll the boulder (it rolls on until it hits something)",
+                Mode.Lob when selected >= 0 && match.KidById(selected).CarryingBoulder => "Tap where to roll the boulder (it rolls on until it hits something)",
+                Mode.Line => "Tap a target for a line drive (fast and flat; cover stops it) · T changes snowball",
+                Mode.Lob => "Tap a target spot for a lob (arcs over cover; they can dodge) · T changes snowball",
                 Mode.Build => "Tap next to the kid's end point to build a snow wall",
                 _ => selected >= 0 ? "Tap the snow to add waypoints · right-click to throw · GO! when ready" : "Tap one of your kids",
             };

@@ -70,17 +70,24 @@ namespace SnowballGame.Presentation
                 }
                 Circle(Match.PathEnd(kid, o.Path), 40, teamColour, 0.07f);
             }
-            if (o.HasThrow)
+            if (o.HasThrow && (kid.Ammo > 0 || o.Ball.HasValue))
             {
+                // Coloured by the snowball that will actually be thrown.
+                var ball = Match.BallFor(kid, o);
+                var spec = Rules.Spec(ball);
+                var style = ball == SnowballType.Boulder ? ThrowStyle.Roll : o.Style;
                 Vec2 origin = o.ThrowFirst ? kid.Pos : Match.PathEnd(kid, o.Path);
                 Vec2 target = o.ThrowTarget;
-                int range = Match.MaxRange(kid, o.Style);
-                if (Vec2.Dist(origin, target) > range) target = origin + (target - origin).WithLength(range);
-                bool clear = o.Style == ThrowStyle.Lob || match.IsLineOfFireClear(origin, target);
-                var lr = Next(clear ? Color.white : Palette.Brick, w * 0.8f);
+                int range = Match.MaxRange(kid, style);
+                if (Vec2.Dist(origin, target) > range || style == ThrowStyle.Roll)
+                    target = origin + (target - origin).WithLength(range);
+                bool clear = style == ThrowStyle.Lob || match.IsLineOfFireClear(origin, target);
+                Color colour = clear || style == ThrowStyle.Roll ? Palette.BallLine(ball) : Palette.Brick;
+                var lr = Next(colour, style == ThrowStyle.Roll ? w * 2.4f : w * 0.8f);
                 var pts = new List<Vector3>();
-                Vector3 a = Greybox.World(origin, 1.1f), b = Greybox.World(target, o.Style == ThrowStyle.Lob ? 0.1f : 1.1f);
-                float apex = o.Style == ThrowStyle.Lob ? 1.5f + Vector3.Distance(a, b) / 4f : 0f;
+                float startY = style == ThrowStyle.Roll ? 0.05f : 1.1f;
+                Vector3 a = Greybox.World(origin, startY), b = Greybox.World(target, style == ThrowStyle.Line ? 1.1f : 0.05f);
+                float apex = style == ThrowStyle.Lob ? 1.5f + Vector3.Distance(a, b) / 4f : 0f;
                 for (int i = 0; i <= 20; i++)
                 {
                     float t = i / 20f;
@@ -88,7 +95,10 @@ namespace SnowballGame.Presentation
                 }
                 lr.positionCount = pts.Count;
                 lr.SetPositions(pts.ToArray());
-                Circle(target, o.Style == ThrowStyle.Lob ? Rules.LobSplashRadius + 30 : 35, clear ? Color.white : Palette.Brick, 0.06f);
+                int ring = spec.MakesCloud ? spec.CloudRadius
+                    : style == ThrowStyle.Lob ? spec.Splash + 30
+                    : style == ThrowStyle.Roll ? Rules.BoulderMaxRadius : 35;
+                Circle(target, ring, colour, spec.HitsArea || spec.MakesCloud ? 0.1f : 0.06f);
             }
             if (o.HasBuild) Circle(o.BuildAt, Rules.BuiltWallRadius, Palette.SnowShadow, 0.1f);
         }
