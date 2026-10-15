@@ -193,6 +193,55 @@ namespace SnowballGame.Core
             return log;
         }
 
+        // ---------------------------------------------------------- real time
+
+        /// <summary>Ticks played so far in real-time mode.</summary>
+        public int RealtimeTick { get; private set; }
+
+        /// <summary>Ticks over which "held still" counts for ducking in real-time mode (1 s).</summary>
+        public const int RealtimeDuckWindow = 10;
+
+        /// <summary>
+        /// Real-time mode: replaces a kid's order straight away (the player or AI
+        /// changed their mind). The same rules as WEGO, just without the turn pause.
+        /// </summary>
+        public void SetRealtimeOrder(KidOrder o)
+        {
+            if (o == null || o.KidId < 0 || o.KidId >= Kids.Count) return;
+            var k = Kids[o.KidId];
+            if (k.Soaked) return;
+            k.Order = o;
+            k.PathIndex = 0;
+            k.Thrown = false;
+            k.Windup = 0;
+            k.BuildDone = false;
+        }
+
+        /// <summary>
+        /// Real-time mode: advances the match by a few ticks with the current orders.
+        /// The returned log has ticks + 1 frames for playback. The match ends at the
+        /// same streetlights limit as WEGO (Rules.TurnLimit x Rules.TurnTicks ticks).
+        /// </summary>
+        public TurnLog StepRealtime(int ticks)
+        {
+            var log = new TurnLog { Turn = Turn };
+            if (Outcome != MatchOutcome.InProgress) return log;
+            log.Frames.Add(Snapshot());
+            for (int i = 1; i <= ticks; i++)
+            {
+                RealtimeTick++;
+                if (RealtimeTick % RealtimeDuckWindow == 0)
+                    foreach (var k in Kids) k.MovedThisTurn = false;
+                foreach (var k in Kids)
+                    if (!k.Soaked) StepKid(k, i, log);
+                StepProjectiles(i, log);
+                log.Frames.Add(Snapshot());
+            }
+            Turn = 1 + RealtimeTick / Rules.TurnTicks;
+            UpdateOutcome();
+            return log;
+        }
+
         void StepKid(Kid k, int tick, TurnLog log)
         {
             var o = k.Order;

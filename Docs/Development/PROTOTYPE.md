@@ -53,8 +53,27 @@ sound, real art, online play, touch gestures for the camera.
 | Presentation | `Assets/Scripts/Presentation` (`SnowballGame.Presentation`) | Builds the map, kids and HUD from the core at runtime from primitives; plays turn logs back by interpolating frames. |
 | Editor tools | `Assets/Editor/ProjectSetup.cs` | **Snowball Game ▸ Setup Project** recreates the URP asset, materials, player settings and the scene. **Snowball Game ▸ Capture Maple Court** renders PNGs to `Logs/Captures/`. |
 
-A real-time mode can reuse the core: feed orders every tick instead of every
-30 ticks.
+## Real-time comparison footage
+
+The core also runs in real time: `Match.SetRealtimeOrder` replaces a kid's
+order at any moment and `Match.StepRealtime(ticks)` advances the same rules
+without the turn pause (ducking uses a rolling one-second window instead of
+"held still this turn"). `SimpleAi.Realtime` makes the AI keep to its chosen
+spot, throw from where it stands and lead running targets.
+
+**Snowball Game ▸ Record Demo Tapes** (or batch mode,
+`-executeMethod SnowballGame.EditorTools.DemoTapeRecorder.Run`) renders two
+1080p/30 fps MP4s of AI-vs-AI matches on Maple Court with captions:
+
+- `Recordings/RealtimeDemo.mp4` — no pauses. Maisie stands in for the player
+  (ringed, re-plans every 0.3 s as if steered, her intent drawn on the snow);
+  every other kid re-plans about once a second.
+- `Recordings/WegoDemo.mp4` — eight turns: a planning beat with the home
+  crew's plans laid down kid by kid, then the 3-second GO!.
+
+Stills every ten seconds go to `Recordings/Stills/`. `Recordings/` is not
+committed. The real-time tape is concept footage: there is no playable
+real-time scene with direct controls yet.
 
 ## Checks
 

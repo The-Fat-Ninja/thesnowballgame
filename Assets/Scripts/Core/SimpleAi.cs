@@ -11,6 +11,13 @@ namespace SnowballGame.Core
     {
         readonly int team;
         readonly Rng rng;
+        readonly Dictionary<int, Vec2> lastDestination = new Dictionary<int, Vec2>();
+
+        /// <summary>
+        /// Real-time play: re-planned every second or so, the AI sticks to the spot it
+        /// was heading for, throws from where it stands and leads moving targets.
+        /// </summary>
+        public bool Realtime;
 
         public SimpleAi(int team, int seed)
         {
@@ -29,6 +36,16 @@ namespace SnowballGame.Core
                 if (o != null) orders.Add(o);
             }
             return orders;
+        }
+
+        /// <summary>Plans a single kid (real-time controllers re-plan kids one at a time).</summary>
+        public KidOrder PlanOne(Match match, Kid k)
+        {
+            if (k.Soaked || k.Team != team) return null;
+            var reserved = new List<Vec2>();
+            foreach (var kv in lastDestination)
+                if (kv.Key != k.Id && !match.KidById(kv.Key).Soaked) reserved.Add(kv.Value);
+            return PlanKid(match, k, reserved);
         }
 
         KidOrder PlanKid(Match match, Kid k, List<Vec2> reserved)
@@ -67,6 +84,8 @@ namespace SnowballGame.Core
                     else score -= Vec2.Dist(c, k.Pos) / 10;
                     if (d < 400) score -= 300;
                     score += rng.Range(0, 60);
+                    if (Realtime && lastDestination.TryGetValue(k.Id, out var prev) && Vec2.DistSq(prev, c) < 150L * 150)
+                        score += 160;
                     if (score > bestScore)
                     {
                         bestScore = score;
@@ -76,24 +95,34 @@ namespace SnowballGame.Core
 
             if (best != k.Pos) order.Path.Add(best);
             reserved.Add(best);
+            lastDestination[k.Id] = best;
 
             if (!needsAmmo)
             {
-                // Throw at whoever is nearest to where this kid will stand.
-                Kid t = Nearest(match, best) ?? target;
-                int dist = Vec2.Dist(best, t.Pos);
-                if (match.IsLineOfFireClear(best, t.Pos) && dist <= lineRange)
+                // WEGO: throw from where this kid will stand. Real time: throw now, from here.
+                Vec2 from = Realtime ? k.Pos : best;
+                Kid t = Nearest(match, from) ?? target;
+                int dist = Vec2.Dist(from, t.Pos);
+                Vec2 aim = t.Pos;
+                if (Realtime && t.Action == KidAction.Walk)
+                {
+                    // Lead a running kid by roughly the snowball's flight time.
+                    int flight = System.Math.Max(Rules.LobMinFlightTicks, dist / Rules.LobSpeedPerTick);
+                    aim = t.Pos + t.Facing.WithLength(t.SpeedPerTick * flight * 7 / 10);
+                }
+                if (match.IsLineOfFireClear(from, aim) && dist <= lineRange)
                 {
                     order.HasThrow = true;
                     order.Style = ThrowStyle.Line;
-                    order.ThrowTarget = t.Pos;
+                    order.ThrowTarget = Realtime ? t.Pos : aim;
                 }
                 else if (dist <= lobRange)
                 {
                     order.HasThrow = true;
                     order.Style = ThrowStyle.Lob;
-                    order.ThrowTarget = t.Pos;
+                    order.ThrowTarget = aim;
                 }
+                order.ThrowFirst = Realtime;
             }
             return order;
         }

@@ -33,13 +33,11 @@ namespace SnowballGame.Presentation
         WorldView world;
         Hud hud;
         Camera cam;
-        Transform worldRoot, planRoot;
+        Transform worldRoot;
+        PlaybackView playback;
+        PlanOverlay plans;
         readonly Dictionary<int, KidView> kids = new Dictionary<int, KidView>();
         readonly Dictionary<int, KidOrder> orders = new Dictionary<int, KidOrder>();
-        readonly Dictionary<int, GameObject> balls = new Dictionary<int, GameObject>();
-        readonly List<(Transform t, float age)> puffs = new List<(Transform, float)>();
-        readonly List<LineRenderer> lines = new List<LineRenderer>();
-        int lineCursor;
 
         Phase phase;
         Mode mode = Mode.Move;
@@ -71,9 +69,6 @@ namespace SnowballGame.Presentation
             if (worldRoot != null) Destroy(worldRoot.gameObject);
             kids.Clear();
             orders.Clear();
-            balls.Clear();
-            puffs.Clear();
-            lines.Clear();
             BuildWorld(seed);
             if (hud == null) BuildHud();
             hud.ResultPanel.SetActive(false);
@@ -95,18 +90,19 @@ namespace SnowballGame.Presentation
 
             worldRoot = new GameObject("World").transform;
             worldRoot.SetParent(transform, false);
-            planRoot = new GameObject("Plans").transform;
-            planRoot.SetParent(worldRoot, false);
             world = new WorldView(box, worldRoot);
             world.Build(match);
             foreach (var k in match.Kids) kids[k.Id] = new KidView(box, worldRoot, k);
-            FrameCamera();
+            playback = new PlaybackView(box, world, worldRoot, match, kids);
+            plans = new PlanOverlay(box, worldRoot, match);
+            FrameCamera(cam, match.Map);
         }
 
-        void FrameCamera()
+        /// <summary>The default tactical view of a map.</summary>
+        public static void FrameCamera(Camera cam, MapDef map)
         {
             if (cam == null) return;
-            var centre = new Vector3(match.Map.Width / 200f, 0, match.Map.Depth / 200f);
+            var centre = new Vector3(map.Width / 200f, 0, map.Depth / 200f);
             cam.transform.position = centre + new Vector3(0, 28f, -24f);
             cam.transform.LookAt(centre + new Vector3(0, 0, -1.2f));
             cam.fieldOfView = 42f;
@@ -141,19 +137,7 @@ namespace SnowballGame.Presentation
             else if (phase == Phase.Playback) StepPlayback(dt);
 
             foreach (var kv in kids) kv.Value.Tick(cam, dt);
-            for (int i = puffs.Count - 1; i >= 0; i--)
-            {
-                var (t, age) = puffs[i];
-                age += dt;
-                if (age > 0.45f || t == null)
-                {
-                    if (t != null) Destroy(t.gameObject);
-                    puffs.RemoveAt(i);
-                    continue;
-                }
-                t.localScale = Vector3.one * (0.3f + age * 2.2f);
-                puffs[i] = (t, age);
-            }
+            playback.Tick(dt);
             if (flashHintTime > 0) flashHintTime -= dt;
             if (phase == Phase.Planning) DrawPlans();
             RefreshHint();
@@ -363,7 +347,7 @@ namespace SnowballGame.Presentation
             eventCursor = 0;
             phase = Phase.Playback;
             if (selected >= 0 && kids.TryGetValue(selected, out var v)) v.SetSelected(false);
-            ClearLines();
+            plans.Clear();
             RefreshHud();
         }
 
@@ -373,16 +357,16 @@ namespace SnowballGame.Presentation
             float tickF = Mathf.Clamp(playTime / PlaybackSeconds * Rules.TurnTicks, 0f, Rules.TurnTicks);
             int i = Mathf.Min(Mathf.FloorToInt(tickF), Rules.TurnTicks - 1);
             float t = tickF - i;
-            ShowFrames(playing.Frames[i], playing.Frames[i + 1], t);
+            playback.ShowFrames(playing.Frames[i], playing.Frames[i + 1], t);
 
             while (eventCursor < playing.Events.Count && playing.Events[eventCursor].Tick <= tickF)
-                ShowEvent(playing.Events[eventCursor++]);
+                playback.ShowEvent(playing.Events[eventCursor++]);
 
             if (playTime >= PlaybackSeconds)
             {
-                while (eventCursor < playing.Events.Count) ShowEvent(playing.Events[eventCursor++]);
-                ShowFrames(playing.Frames[Rules.TurnTicks], playing.Frames[Rules.TurnTicks], 0f);
-                foreach (var c in match.Cover) world.RefreshCover(c);
+                while (eventCursor < playing.Events.Count) playback.ShowEvent(playing.Events[eventCursor++]);
+                playback.ShowFrames(playing.Frames[Rules.TurnTicks], playing.Frames[Rules.TurnTicks], 0f);
+                playback.RefreshAllCover();
                 if (match.Outcome != MatchOutcome.InProgress)
                 {
                     phase = Phase.Over;
@@ -404,170 +388,26 @@ namespace SnowballGame.Presentation
             }
         }
 
-        void ShowFrames(Frame a, Frame b, float t)
-        {
-            for (int k = 0; k < a.Kids.Length; k++)
-            {
-                var kid = match.Kids[k];
-                kids[k].Apply(a.Kids[k], b.Kids[k], t, kid.MaxWarmth, kid.MaxAmmo);
-            }
-            var seen = new HashSet<int>();
-            foreach (var pa in a.Projectiles)
-            {
-                seen.Add(pa.Id);
-                var pb = b.Projectiles.Find(x => x.Id == pa.Id);
-                bool hasB = pb.Id == pa.Id;
-                Vector3 wa = Greybox.World(pa.Pos, pa.Height / 100f);
-                Vector3 wb = hasB ? Greybox.World(pb.Pos, pb.Height / 100f) : wa;
-                if (!balls.TryGetValue(pa.Id, out var ball))
-                {
-                    ball = box.Prim(PrimitiveType.Sphere, worldRoot, wa, Vector3.one * 0.22f, Color.white, "Snowball");
-                    balls[pa.Id] = ball;
-                }
-                ball.SetActive(true);
-                ball.transform.localPosition = Vector3.Lerp(wa, wb, t);
-            }
-            foreach (var kv in balls)
-                if (!seen.Contains(kv.Key)) kv.Value.SetActive(false);
-        }
-
-        void ShowEvent(MatchEvent e)
-        {
-            switch (e.Kind)
-            {
-                case EventKind.HitKid:
-                    if (kids.TryGetValue(e.OtherId, out var victim)) victim.Flash();
-                    Puff(Greybox.World(e.Pos, 1.0f), 1f);
-                    break;
-                case EventKind.Splash:
-                    Puff(Greybox.World(e.Pos, 0.1f), 0.7f);
-                    break;
-                case EventKind.CoverHit:
-                case EventKind.CoverDestroyed:
-                    Puff(Greybox.World(e.Pos, 0.6f), 0.8f);
-                    world.RefreshCover(match.Cover.Find(c => c.Id == e.OtherId));
-                    break;
-                case EventKind.CoverBuilt:
-                    var built = match.Cover.Find(c => c.Id == e.OtherId);
-                    if (built != null && !world.HasCover(built.Id)) world.AddCover(built);
-                    Puff(Greybox.World(e.Pos, 0.4f), 1f);
-                    break;
-                case EventKind.Soaked:
-                    Puff(Greybox.World(e.Pos, 0.8f), 1.6f);
-                    break;
-            }
-        }
-
-        void Puff(Vector3 at, float size)
-        {
-            var p = box.Prim(PrimitiveType.Sphere, worldRoot, at, Vector3.one * 0.3f * size, Palette.SnowLight, "Puff");
-            puffs.Add((p.transform, 0f));
-        }
-
         // ------------------------------------------------------------ plan drawing
 
         void DrawPlans()
         {
-            lineCursor = 0;
+            plans.Begin();
             foreach (var kv in orders)
             {
                 var kid = match.KidById(kv.Key);
-                if (kid.Soaked) continue;
-                DrawOrder(kid, kv.Value, kv.Key == selected);
+                if (!kid.Soaked) plans.Order(kid, kv.Value, kv.Key == selected, Palette.Team(Match.Home));
             }
             if (selected >= 0 && (mode == Mode.Line || mode == Mode.Lob))
             {
                 var kid = match.KidById(selected);
                 orders.TryGetValue(selected, out var o);
                 Vec2 origin = o != null && !o.ThrowFirst ? Match.PathEnd(kid, o.Path) : kid.Pos;
-                Circle(origin, Match.MaxRange(kid, mode == Mode.Lob ? ThrowStyle.Lob : ThrowStyle.Line), Palette.Team(Match.Home), 0.06f);
+                plans.Circle(origin, Match.MaxRange(kid, mode == Mode.Lob ? ThrowStyle.Lob : ThrowStyle.Line), Palette.Team(Match.Home), 0.06f);
             }
             if (selected >= 0 && mode == Mode.Move)
-            {
-                var kid = match.KidById(selected);
-                orders.TryGetValue(selected, out var o);
-                Circle(kid.Pos, Match.MoveReach(kid), Palette.SnowShadow, 0.05f);
-            }
-            for (int i = lineCursor; i < lines.Count; i++) lines[i].positionCount = 0;
-        }
-
-        void DrawOrder(Kid kid, KidOrder o, bool isSelected)
-        {
-            float w = isSelected ? 0.14f : 0.09f;
-            if (o.Path.Count > 0)
-            {
-                var pts = new List<Vector3> { Greybox.World(kid.Pos, 0.05f) };
-                foreach (var p in o.Path) pts.Add(Greybox.World(p, 0.05f));
-                var lr = NextLine(Palette.Team(Match.Home), w);
-                lr.positionCount = pts.Count;
-                lr.SetPositions(pts.ToArray());
-
-                // Mark where the kid runs out of time if the walk is too long.
-                int reach = Match.MoveReach(kid), walked = 0;
-                Vec2 prev = kid.Pos;
-                foreach (var p in o.Path)
-                {
-                    int seg = Vec2.Dist(prev, p);
-                    if (walked + seg > reach)
-                    {
-                        Vec2 stop = Vec2.Lerp(prev, p, (reach - walked) * 1000 / Mathf.Max(1, seg));
-                        Circle(stop, 30, Palette.Brick, 0.08f);
-                        break;
-                    }
-                    walked += seg;
-                    prev = p;
-                }
-                Circle(Match.PathEnd(kid, o.Path), 40, Palette.Team(Match.Home), 0.07f);
-            }
-            if (o.HasThrow)
-            {
-                Vec2 origin = o.ThrowFirst ? kid.Pos : Match.PathEnd(kid, o.Path);
-                Vec2 target = o.ThrowTarget;
-                int range = Match.MaxRange(kid, o.Style);
-                if (Vec2.Dist(origin, target) > range) target = origin + (target - origin).WithLength(range);
-                bool clear = o.Style == ThrowStyle.Lob || match.IsLineOfFireClear(origin, target);
-                var lr = NextLine(clear ? Color.white : Palette.Brick, w * 0.8f);
-                var pts = new List<Vector3>();
-                Vector3 a = Greybox.World(origin, 1.1f), b = Greybox.World(target, o.Style == ThrowStyle.Lob ? 0.1f : 1.1f);
-                float apex = o.Style == ThrowStyle.Lob ? 1.5f + Vector3.Distance(a, b) / 4f : 0f;
-                for (int i = 0; i <= 20; i++)
-                {
-                    float t = i / 20f;
-                    pts.Add(Vector3.Lerp(a, b, t) + Vector3.up * (4f * apex * t * (1 - t)));
-                }
-                lr.positionCount = pts.Count;
-                lr.SetPositions(pts.ToArray());
-                Circle(target, o.Style == ThrowStyle.Lob ? Rules.LobSplashRadius + 30 : 35, clear ? Color.white : Palette.Brick, 0.06f);
-            }
-            if (o.HasBuild) Circle(o.BuildAt, Rules.BuiltWallRadius, Palette.SnowShadow, 0.1f);
-        }
-
-        void Circle(Vec2 centre, int radiusCm, Color c, float width)
-        {
-            var lr = NextLine(c, width);
-            const int n = 48;
-            lr.positionCount = n + 1;
-            Vector3 o = Greybox.World(centre, 0.04f);
-            float r = radiusCm / 100f;
-            for (int i = 0; i <= n; i++)
-            {
-                float a = i * Mathf.PI * 2f / n;
-                lr.SetPosition(i, o + new Vector3(Mathf.Cos(a) * r, 0, Mathf.Sin(a) * r));
-            }
-        }
-
-        LineRenderer NextLine(Color c, float width)
-        {
-            if (lineCursor >= lines.Count) lines.Add(box.Line(planRoot, c, width, "PlanLine"));
-            var lr = lines[lineCursor++];
-            lr.sharedMaterial = box.Unlit(c);
-            lr.widthMultiplier = width;
-            return lr;
-        }
-
-        void ClearLines()
-        {
-            foreach (var l in lines) l.positionCount = 0;
+                plans.Circle(match.KidById(selected).Pos, Match.MoveReach(match.KidById(selected)), Palette.SnowShadow, 0.05f);
+            plans.End();
         }
 
         // ------------------------------------------------------------ HUD text
@@ -678,13 +518,13 @@ namespace SnowballGame.Presentation
                         var c = match.Cover.Find(x => x.Id == e.OtherId);
                         if (c != null && !world.HasCover(c.Id)) world.AddCover(c);
                     }
-                ShowFrames(log.Frames[Rules.TurnTicks - 6], log.Frames[Rules.TurnTicks - 6], 0f);
+                playback.ShowFrames(log.Frames[Rules.TurnTicks - 6], log.Frames[Rules.TurnTicks - 6], 0f);
             }
-            foreach (var c in match.Cover) world.RefreshCover(c);
+            playback.RefreshAllCover();
             // Draw the plans the home AI would make next, so captures show the planning overlay.
-            var preview = homeAi.Plan(match);
-            lineCursor = 0;
-            foreach (var o in preview) DrawOrder(match.KidById(o.KidId), o, false);
+            plans.Begin();
+            foreach (var o in homeAi.Plan(match)) plans.Order(match.KidById(o.KidId), o, false, Palette.Team(Match.Home));
+            plans.End();
             foreach (var kv in kids) kv.Value.Tick(cam, 0f);
         }
 
@@ -692,8 +532,6 @@ namespace SnowballGame.Presentation
         {
             if (worldRoot != null) DestroyImmediate(worldRoot.gameObject);
             kids.Clear();
-            lines.Clear();
-            balls.Clear();
         }
     }
 }

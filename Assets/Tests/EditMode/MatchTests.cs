@@ -201,6 +201,54 @@ namespace SnowballGame.Tests
             Assert.Greater(decisive, 0);
         }
 
+        static string RunRealtime(int seed, out Match m)
+        {
+            m = new Match(Maps.MapleCourt(), Roster.MapleCourtCrew(), Roster.HillRoadHooligans(), seed);
+            var home = new SimpleAi(Match.Home, seed + 1) { Realtime = true };
+            var away = new SimpleAi(Match.Away, seed + 2) { Realtime = true };
+            var sb = new System.Text.StringBuilder();
+            int guard = 0;
+            while (m.Outcome == MatchOutcome.InProgress && guard++ < 1000)
+            {
+                // Each kid re-plans about once a second, staggered so they don't all switch at once.
+                foreach (var k in m.Kids)
+                    if (!k.Soaked && (m.RealtimeTick + k.Id * 3) % 10 == 0)
+                        m.SetRealtimeOrder((k.Team == Match.Home ? home : away).PlanOne(m, k));
+                var log = m.StepRealtime(1);
+                Assert.AreEqual(2, log.Frames.Count);
+                foreach (var k in m.Kids) sb.Append(k.Pos).Append(k.Warmth).Append(';');
+            }
+            return sb.Append(m.Outcome).ToString();
+        }
+
+        [Test]
+        public void RealtimeMatchFinishesAndIsDeterministic()
+        {
+            string a = RunRealtime(5, out var m);
+            Assert.AreNotEqual(MatchOutcome.InProgress, m.Outcome);
+            Assert.LessOrEqual(m.RealtimeTick, Rules.TurnLimit * Rules.TurnTicks);
+            Assert.IsTrue(m.Kids.Exists(k => k.Warmth < k.MaxWarmth), "nobody got hit");
+            Assert.AreEqual(a, RunRealtime(5, out _));
+        }
+
+        [Test]
+        public void RealtimeOrderCanBeReplacedMidWalk()
+        {
+            var m = Duel(OpenField());
+            var a = m.KidById(0);
+            var east = new KidOrder(0);
+            east.Path.Add(new Vec2(1600, 1500));
+            m.SetRealtimeOrder(east);
+            m.StepRealtime(5);
+            Assert.Greater(a.Pos.X, 1000);
+            var north = new KidOrder(0);
+            north.Path.Add(new Vec2(a.Pos.X, 2200));
+            m.SetRealtimeOrder(north);
+            m.StepRealtime(30);
+            Assert.AreEqual(2200, a.Pos.Z);
+            Assert.Less(a.Pos.X, 1600);
+        }
+
         [Test]
         public void MapleCourtSpawnsAreWalkable()
         {

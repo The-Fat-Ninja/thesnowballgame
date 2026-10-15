@@ -25,6 +25,7 @@ namespace SnowballGame.Presentation
         readonly Greybox box;
         float flash;
         float bob;
+        bool walking;
         bool soaked;
 
         public KidView(Greybox box, Transform parent, Kid kid)
@@ -89,6 +90,7 @@ namespace SnowballGame.Presentation
             if (face.sqrMagnitude > 0.0001f) body.localRotation = Quaternion.LookRotation(face.normalized, Vector3.up);
 
             KidAction action = t < 0.5f ? a.Action : b.Action;
+            walking = false;
             soaked = action == KidAction.Soaked;
             float frac = Mathf.Clamp01(b.Warmth / (float)Mathf.Max(1, maxWarmth));
             warmthFill.localScale = new Vector3(0.8f * frac, 0.08f, 0.02f);
@@ -100,7 +102,7 @@ namespace SnowballGame.Presentation
             switch (action)
             {
                 case KidAction.Walk:
-                    bob += Time.deltaTime * 14f;
+                    walking = true;
                     offset.y = Mathf.Abs(Mathf.Sin(bob)) * 0.08f;
                     break;
                 case KidAction.Pack:
@@ -131,6 +133,7 @@ namespace SnowballGame.Presentation
 
         public void Tick(Camera cam, float dt)
         {
+            if (walking) bob += dt * 14f;
             if (flash > 0)
             {
                 flash -= dt;
