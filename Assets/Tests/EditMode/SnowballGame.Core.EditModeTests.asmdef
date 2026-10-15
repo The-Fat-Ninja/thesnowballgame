@@ -1,0 +1,12 @@
+{
+    "name": "SnowballGame.Core.EditModeTests",
+    "references": [
+        "SnowballGame.Core"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}

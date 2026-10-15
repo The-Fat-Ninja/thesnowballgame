@@ -5,6 +5,10 @@ The owner's rulings. Newest first within each date. Answers to
 
 ## 2026-10-14
 
+**Build first.** Ratings, children's-privacy rules and App Store / Steam
+store work are parked until the game is playable. Questions 14 and 16 wait
+until then.
+
 | # | Topic | Ruling |
 |---|---|---|
 | 1 | Play style | Prototype **planned simultaneous turns (WEGO) first**, real-time second on the same rules core. Owner likes WEGO; suspects real-time is more saleable — playtests decide, both stay possible. |

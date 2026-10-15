@@ -1,0 +1,10 @@
+{
+    "name": "SnowballGame.PlayModeTests",
+    "references": [
+        "SnowballGame.Core",
+        "SnowballGame.Presentation"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

@@ -11,7 +11,10 @@ and out-think the gang from the next street over.
 
 ## Status
 
-Pre-production: design vision and first concept sheets. No Unity project yet.
+First playable greybox: a WEGO (planned simultaneous turns) prototype on the
+Maple Court map, 4 v 4 against an AI crew. Open the project in Unity
+6000.6.3f1, load `Assets/Scenes/MapleCourt.unity` and press Play.
+How to play and how it's built: [Docs/Development/PROTOTYPE.md](Docs/Development/PROTOTYPE.md).
 
 ![Character line-up](Docs/Concept/CharacterLineup_v01.svg)
 

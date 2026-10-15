@@ -21,5 +21,6 @@ script and re-run it rather than editing the SVGs by hand.
 
 ## Working records
 
+- `Development/PROTOTYPE.md` - the WEGO prototype: how to play, architecture, checks.
 - `Development/OWNER_DECISIONS.md` - the owner's rulings.
 - `Development/OPEN_QUESTIONS.md` - questions and answers.
